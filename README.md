@@ -1,6 +1,6 @@
-# LockPlan
+# VocalClerk
 
-LockPlan is a comprehensive task management application built with Spring Boot and React. It helps users organize their tasks, set priorities, and manage deadlines efficiently.
+VocalClerk is a comprehensive task management application built with Spring Boot and React. It helps users organize their tasks, set priorities, and manage deadlines efficiently.
 
 ## Features
 
@@ -38,8 +38,8 @@ LockPlan is a comprehensive task management application built with Spring Boot a
 
 1. Clone the repository:
    ```
-   git clone https://github.com/carlzhu/lockplan.git
-   cd lockplan
+   git clone https://github.com/carlzhu/vocalclerk.git
+   cd vocalclerk
    ```
 
 2. Start the backend:
@@ -64,3 +64,7 @@ LockPlan is a comprehensive task management application built with Spring Boot a
 ## Mobile Version
 
 A React Native version of this application is planned for future development to enable mobile access.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

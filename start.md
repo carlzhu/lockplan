@@ -1,6 +1,6 @@
-# Getting Started with RgNotepad Frontend Project
+# Getting Started with VocalClerk Frontend Project
 
-This guide will help you run the RgNotepad React Native frontend application on iOS and Android simulators, including detailed compilation steps.
+This guide will help you run the VocalClerk React Native frontend application on iOS and Android simulators, including detailed compilation steps.
 
 ## Prerequisites
 
@@ -133,7 +133,7 @@ To build with specific configurations:
 
 ```bash
 cd frontend/ios
-xcodebuild -workspace RgNotepad.xcworkspace -scheme RgNotepad -configuration Release -sdk iphonesimulator
+xcodebuild -workspace VocalClerk.xcworkspace -scheme VocalClerk -configuration Release -sdk iphonesimulator
 ```
 
 ### Custom Android Build Configuration
@@ -152,7 +152,7 @@ If you encounter build issues, try cleaning the build:
 For iOS:
 ```bash
 cd frontend/ios
-xcodebuild clean -workspace RgNotepad.xcworkspace -scheme RgNotepad
+xcodebuild clean -workspace VocalClerk.xcworkspace -scheme VocalClerk
 pod install
 ```
 
@@ -207,7 +207,7 @@ If you encounter build errors:
 
 ## Project Structure
 
-The RgNotepad frontend is a React Native application built with Expo. Key files include:
+The VocalClerk frontend is a React Native application built with Expo. Key files include:
 - `index.ts`: Entry point
 - Navigation setup in the navigation directory
 - API services for backend communication

@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * Main application class for the Lock Plan application.
+ * Main application class for the VocalClerk application.
  * This is the entry point for the Spring Boot application.
  */
 @SpringBootApplication

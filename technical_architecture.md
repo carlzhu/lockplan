@@ -1,8 +1,8 @@
-# 锁事计划 App 技术架构设计
+# VocalClerk App 技术架构设计
 
 ## 1. 系统架构概览
 
-"锁事计划"应用采用前后端分离的架构设计，以支持跨平台部署和良好的扩展性。
+"VocalClerk"应用采用前后端分离的架构设计，以支持跨平台部署和良好的扩展性。
 
 ```
 ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
@@ -78,43 +78,43 @@ src/
 - 日历事件集成
 - 自定义提醒设置界面
 
-## 3. 后端架构 (C# WebAPI)
+## 3. 后端架构 (Java Spring Boot)
 
 ### 3.1 技术栈
-- **框架**: ASP.NET Core
-- **ORM**: Entity Framework Core
-- **数据库**: SQL Server/PostgreSQL
-- **认证**: JWT/OAuth 2.0
+- **框架**: Spring Boot
+- **ORM**: JPA/Hibernate
+- **数据库**: H2 Database (开发环境), PostgreSQL (生产环境)
+- **认证**: JWT
 - **API文档**: Swagger
-- **日志**: Serilog
+- **日志**: Logback
 
 ### 3.2 模块结构
 ```
-Backend/
-├── API/                  # API层
-│   ├── Controllers/      # API控制器
-│   ├── Filters/          # API过滤器
-│   ├── Middleware/       # 中间件
-│   └── DTOs/             # 数据传输对象
-├── Application/          # 应用服务层
-│   ├── Services/         # 业务服务
-│   ├── Interfaces/       # 服务接口
-│   └── Mappers/          # 对象映射
-├── Domain/               # 领域层
-│   ├── Entities/         # 领域实体
-│   ├── Enums/            # 枚举定义
-│   └── ValueObjects/     # 值对象
-├── Infrastructure/       # 基础设施层
-│   ├── Data/             # 数据访问
-│   │   ├── Repositories/ # 仓储实现
-│   │   ├── Context/      # 数据库上下文
-│   │   └── Migrations/   # 数据库迁移
-│   ├── AI/               # AI服务集成
-│   │   ├── Ollama/       # Ollama集成
-│   │   └── Qianwen/      # 通义千问集成
-│   ├── ExternalServices/ # 外部服务集成
-│   └── Security/         # 安全相关
-└── Tests/                # 测试项目
+src/
+├── main/
+│   ├── java/
+│   │   └── com/
+│   │       └── vocalclerk/
+│   │           ├── api/                # API层
+│   │           │   ├── controllers/    # API控制器
+│   │           │   └── dtos/           # 数据传输对象
+│   │           ├── application/        # 应用服务层
+│   │           │   ├── services/       # 业务服务
+│   │           │   └── interfaces/     # 服务接口
+│   │           ├── domain/             # 领域层
+│   │           │   ├── entities/       # 领域实体
+│   │           │   ├── enums/          # 枚举定义
+│   │           │   └── valueobjects/   # 值对象
+│   │           ├── infrastructure/     # 基础设施层
+│   │           │   ├── repositories/   # 仓储实现
+│   │           │   ├── config/         # 配置类
+│   │           │   ├── ai/             # AI服务集成
+│   │           │   │   ├── ollama/     # Ollama集成
+│   │           │   │   └── qianwen/    # 通义千问集成
+│   │           │   └── security/       # 安全相关
+│   │           └── VocalClerkApplication.java  # 应用入口
+│   └── resources/                      # 资源文件
+└── test/                               # 测试代码
 ```
 
 ### 3.3 API设计
@@ -353,3 +353,29 @@ User 1──┐
 - 使用模式分析
 - 功能使用频率统计
 - A/B测试支持
+
+## 11. 未来扩展计划
+
+### 11.1 功能扩展
+- 添加更多AI模型支持
+- 增强多语言支持
+- 开发更多第三方集成
+
+### 11.2 技术优化
+- 性能优化和代码重构
+- 微服务架构演进
+- 容器化部署优化
+
+## 12. 开源与许可
+
+VocalClerk 项目采用 MIT 许可证开源，允许任何人自由使用、修改和分发代码，无论是用于个人还是商业目的。详细许可条款请参见项目根目录下的 LICENSE 文件。
+
+### 12.1 开源策略
+- 核心功能模块开源
+- 鼓励社区贡献和改进
+- 定期合并有价值的社区贡献
+
+### 12.2 贡献指南
+- 提供明确的贡献流程
+- 代码风格和质量标准
+- Pull Request 和 Code Review 流程
