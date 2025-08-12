@@ -11,14 +11,53 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { createTask } from '../services/taskService';
 
 const CreateTaskScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [dueDateTime, setDueDateTime] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [priority, setPriority] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDueDateTime(selectedDate);
+      
+      // Format date as YYYY-MM-DD
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const hours = String(selectedDate.getHours()).padStart(2, '0');
+      const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+      
+      setDueDate(`${year}-${month}-${day} ${hours}:${minutes}`);
+    }
+  };
+
+  const onTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      const newDateTime = new Date(dueDateTime);
+      newDateTime.setHours(selectedTime.getHours());
+      newDateTime.setMinutes(selectedTime.getMinutes());
+      setDueDateTime(newDateTime);
+      
+      // Update the formatted date string
+      const year = newDateTime.getFullYear();
+      const month = String(newDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(newDateTime.getDate()).padStart(2, '0');
+      const hours = String(newDateTime.getHours()).padStart(2, '0');
+      const minutes = String(newDateTime.getMinutes()).padStart(2, '0');
+      
+      setDueDate(`${year}-${month}-${day} ${hours}:${minutes}`);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -28,10 +67,17 @@ const CreateTaskScreen = ({ navigation }: any) => {
 
     try {
       setLoading(true);
+      
+      // Format the date for the backend if it exists
+      let formattedDueDate = undefined;
+      if (dueDate) {
+        formattedDueDate = dueDate;
+      }
+      
       const newTask = {
         title,
         description,
-        dueDate: dueDate || undefined,
+        dueDate: formattedDueDate,
         priority: priority || undefined,
         completed: false,
       };
@@ -83,13 +129,42 @@ const CreateTaskScreen = ({ navigation }: any) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Due Date</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={dueDate}
-              onChangeText={setDueDate}
-            />
+            <Text style={styles.label}>Due Date and Time</Text>
+            <TouchableOpacity 
+              style={styles.dateTimeInput}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={dueDate ? styles.dateTimeText : styles.dateTimePlaceholder}>
+                {dueDate || "Select date and time"}
+              </Text>
+            </TouchableOpacity>
+            
+            {showDatePicker && (
+              <DateTimePicker
+                value={dueDateTime}
+                mode="date"
+                display="default"
+                onChange={onDateChange}
+              />
+            )}
+            
+            {!showDatePicker && dueDate && (
+              <TouchableOpacity 
+                style={[styles.button, styles.timeButton]}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text style={styles.timeButtonText}>Set Time</Text>
+              </TouchableOpacity>
+            )}
+            
+            {showTimePicker && (
+              <DateTimePicker
+                value={dueDateTime}
+                mode="time"
+                display="default"
+                onChange={onTimeChange}
+              />
+            )}
           </View>
 
           <View style={styles.inputContainer}>
@@ -212,6 +287,33 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  dateTimeInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    justifyContent: 'center',
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  dateTimePlaceholder: {
+    fontSize: 16,
+    color: '#999',
+  },
+  timeButton: {
+    marginTop: 10,
+    backgroundColor: '#6c757d',
+    padding: 10,
+  },
+  timeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

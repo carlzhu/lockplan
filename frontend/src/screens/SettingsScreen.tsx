@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, DEFAULT_API_URL, updateApiUrl } from '../config/apiConfig';
+import { AuthContext } from '../context/AuthContext';
 
-const SettingsScreen = () => {
+const SettingsScreen = ({ navigation }) => {
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [savedUrl, setSavedUrl] = useState(API_URL);
+  const { logout } = useContext(AuthContext);
 
   useEffect(() => {
     loadSettings();
@@ -114,6 +116,32 @@ const SettingsScreen = () => {
             4. Make sure your backend server is running and accessible from your device
           </Text>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <TouchableOpacity
+            style={[styles.button, styles.logoutButton]}
+            onPress={() => {
+              Alert.alert(
+                'Logout',
+                'Are you sure you want to logout?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Logout', 
+                    style: 'destructive',
+                    onPress: () => {
+                      logout();
+                      // Navigation will automatically redirect to login screen due to AuthContext
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </ScrollView>
   );
@@ -176,6 +204,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
+  },
+  logoutButton: {
+    backgroundColor: '#ff3b30',
+    marginTop: 10,
   },
   buttonText: {
     color: '#fff',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,16 +17,35 @@ const HomeScreen = ({ navigation }: any) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
+  const isInitialMount = useRef(true);
+  const lastFocusTime = useRef(Date.now());
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const data = await getTasks();
       setTasks(data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
-      Alert.alert('Error', 'Failed to load tasks. Please try again.');
+      
+      // Check if it's a 403 error (unauthorized)
+      if (error.response && error.response.status === 403) {
+        Alert.alert(
+          'Authentication Error',
+          'Your session has expired. Please log in again.',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => logout() 
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to load tasks. Please try again.');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -34,11 +53,20 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   useEffect(() => {
+    // Initial fetch on component mount
     fetchTasks();
 
-    // Refresh tasks when the screen comes into focus
+    // Setup focus listener with debounce logic
     const unsubscribe = navigation.addListener('focus', () => {
-      fetchTasks();
+      const now = Date.now();
+      // Only fetch if this is not the initial mount and at least 300ms have passed since last focus
+      // This prevents double fetching on initial render and rapid re-fetches
+      if (!isInitialMount.current && now - lastFocusTime.current > 300) {
+        // Use background fetch (no loading indicator) to prevent screen flicker
+        fetchTasks(false);
+      }
+      lastFocusTime.current = now;
+      isInitialMount.current = false;
     });
 
     return unsubscribe;
@@ -85,28 +113,68 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const renderItem = ({ item }: { item: Task }) => {
-    const dueDate = item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'No due date';
+    // Format date to show both date and time if available
+    let formattedDate = 'No due date';
+    if (item.dueDate) {
+      const date = new Date(item.dueDate);
+      const dateOptions: Intl.DateTimeFormatOptions = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      };
+      const timeOptions: Intl.DateTimeFormatOptions = { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      };
+      
+      formattedDate = `${date.toLocaleDateString(undefined, dateOptions)} at ${date.toLocaleTimeString(undefined, timeOptions)}`;
+    }
+    
+    // Determine status indicator color
+    const statusColor = item.completed ? '#34c759' : 
+                        (item.dueDate && new Date(item.dueDate) < new Date() ? '#ff3b30' : '#007aff');
     
     return (
-      <View style={[styles.taskItem, item.completed && styles.completedTask]}>
+      <View style={[
+        styles.taskItem, 
+        item.completed && styles.completedTask,
+        { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || 'low') }
+      ]}>
+        <View style={styles.statusIndicator}>
+          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+        </View>
+        
         <View style={styles.taskContent}>
-          <Text style={[styles.taskTitle, item.completed && styles.completedText]}>
-            {item.title}
-          </Text>
-          {item.description && (
-            <Text style={[styles.taskDescription, item.completed && styles.completedText]}>
-              {item.description}
+          <View style={styles.taskHeader}>
+            <Text style={[styles.taskTitle, item.completed && styles.completedText]}>
+              {item.title}
             </Text>
-          )}
-          <View style={styles.taskMeta}>
-            <Text style={styles.taskDate}>Due: {dueDate}</Text>
+            
             {item.priority && (
               <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
                 <Text style={styles.priorityText}>{item.priority}</Text>
               </View>
             )}
           </View>
+          
+          {item.description && (
+            <Text 
+              style={[styles.taskDescription, item.completed && styles.completedText]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+            >
+              {item.description}
+            </Text>
+          )}
+          
+          <View style={styles.taskMeta}>
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateIcon}>🕒</Text>
+              <Text style={styles.taskDate}>{formattedDate}</Text>
+            </View>
+          </View>
         </View>
+        
         <View style={styles.taskActions}>
           {!item.completed && (
             <TouchableOpacity
@@ -215,162 +283,218 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e1e1',
+    borderBottomColor: '#e5e5ea',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    elevation: 1,
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#1c1c1e',
+    letterSpacing: 0.25,
   },
   settingsButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0f0',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f2f2f7',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
   },
   settingsButtonText: {
-    fontSize: 18,
+    fontSize: 16,
   },
   addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#4a90e2',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#007aff',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
+    elevation: 2,
   },
   addButtonText: {
-    fontSize: 24,
+    fontSize: 20,
     color: '#fff',
     fontWeight: 'bold',
+    lineHeight: 22,
   },
   listContainer: {
-    padding: 16,
+    padding: 10,
   },
   taskItem: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
+    padding: 10,
+    marginBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 2,
     elevation: 2,
   },
   completedTask: {
-    backgroundColor: '#f9f9f9',
-    borderColor: '#e1e1e1',
+    backgroundColor: '#f8f9fa',
+    opacity: 0.85,
+  },
+  statusIndicator: {
+    marginRight: 8,
+    justifyContent: 'center',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   taskContent: {
     flex: 1,
+    paddingRight: 4,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
   },
   taskTitle: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    color: '#1c1c1e',
+    flex: 1,
+    marginRight: 6,
   },
   completedText: {
     textDecorationLine: 'line-through',
-    color: '#999',
+    color: '#8e8e93',
   },
   taskDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: 12,
+    color: '#3c3c43',
+    marginBottom: 5,
+    lineHeight: 16,
   },
   taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dateIcon: {
+    fontSize: 10,
+    marginRight: 2,
   },
   taskDate: {
-    fontSize: 12,
-    color: '#888',
-    marginRight: 8,
+    fontSize: 11,
+    color: '#636366',
+    fontWeight: '500',
   },
   priorityBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 12,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
   },
   priorityText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#fff',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   taskActions: {
     flexDirection: 'column',
     justifyContent: 'space-between',
-    marginLeft: 10,
+    marginLeft: 6,
   },
   actionButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 1,
+    elevation: 1,
   },
   completeButton: {
-    backgroundColor: '#1dd1a1',
+    backgroundColor: '#34c759',
   },
   editButton: {
-    backgroundColor: '#feca57',
+    backgroundColor: '#ff9500',
   },
   deleteButton: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: '#ff3b30',
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 30,
+    backgroundColor: '#f8f9fa',
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
+    color: '#3c3c43',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   emptySubtext: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: 16,
+    color: '#8e8e93',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#4a90e2',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    elevation: 5,
+    bottom: 16,
+    right: 16,
+    backgroundColor: '#007aff',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   floatingButtonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

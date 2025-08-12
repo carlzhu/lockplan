@@ -30,6 +30,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Define logout function early so it can be used in the interceptor
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout failed', error);
+    }
+  };
+  
+  // Set up axios interceptor to handle 403 errors
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        if (error.response && error.response.status === 403) {
+          console.log('Received 403 error, logging out');
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+    
+    // Clean up interceptor on unmount
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if user is logged in
@@ -37,7 +69,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const token = await AsyncStorage.getItem('token');
         if (token) {
+          // Set the Authorization header for all future requests
           axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          
+          // Update the API URL before making any requests
+          updateAxiosBaseUrl(API_URL);
+          
           const userResponse = await AsyncStorage.getItem('user');
           if (userResponse) {
             setUser(JSON.parse(userResponse));
@@ -46,6 +83,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (error) {
         console.error('Authentication check failed', error);
+        // Clear any invalid authentication data
+        logout();
       } finally {
         setLoading(false);
       }
@@ -62,16 +101,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       updateAxiosBaseUrl(API_URL);
       
       const response = await axios.post('/api/auth/login', {
-        email,
+        username: email, // Changed from 'email' to 'username' to match backend expectations
         password,
       });
 
-      const { token, user } = response.data;
+      const { accessToken, user } = response.data;
       
-      await AsyncStorage.setItem('token', token);
+      await AsyncStorage.setItem('token', accessToken);
       await AsyncStorage.setItem('user', JSON.stringify(user));
       
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
       
       setUser(user);
       setIsAuthenticated(true);
@@ -85,15 +124,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const logout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      delete axios.defaults.headers.common['Authorization'];
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Logout failed', error);
-    }
+    await handleLogout();
   };
 
   const register = async (name: string, email: string, password: string) => {

@@ -1,4 +1,5 @@
-// API configuration for the LockPlan mobile app
+// API configuration for the VocalClerk mobile app
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Default API URLs for different environments
@@ -8,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Default API URL - this will be used if no custom URL is set
 // For iOS simulator, use host.docker.internal:8080 or your machine's IP address
-export const DEFAULT_API_URL = 'http://host.docker.internal:8080';
+export const DEFAULT_API_URL = 'http://192.168.221.151:8080';
 
 // This is the API URL that will be used by the app
 // It's initialized with the default value but will be updated when the app starts
@@ -49,5 +50,3 @@ export const updateAxiosBaseUrl = (baseUrl: string) => {
   console.log(`API URL updated to: ${baseUrl}`);
 };
 
-// Import axios here to avoid circular dependencies
-import axios from 'axios';

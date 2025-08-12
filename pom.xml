@@ -8,10 +8,10 @@
         <version>3.1.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.lockplan</groupId>
-    <artifactId>lock-plan</artifactId>
+    <groupId>com.vocalclerk</groupId>
+    <artifactId>vocal-clerk</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Lock Plan</name>
+    <name>Vocal Clerk</name>
     <description>Smart task management application</description>
     
     <properties>

@@ -57,12 +57,13 @@ const EditTaskScreen = ({ route, navigation }: any) => {
         priority: priority || undefined,
       };
 
-      await updateTask(taskId, updatedTask);
-      Alert.alert(
-        'Success',
-        'Task updated successfully!',
-        [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
-      );
+      const result = await updateTask(taskId, updatedTask);
+      // Return to the previous screen without triggering a full refresh
+      navigation.goBack();
+      // Show success message after navigation to prevent UI blocking
+      setTimeout(() => {
+        Alert.alert('Success', 'Task updated successfully!');
+      }, 300);
     } catch (error) {
       console.error('Error updating task:', error);
       Alert.alert('Error', 'Failed to update task. Please try again.');

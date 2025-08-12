@@ -61,7 +61,7 @@ const AppNavigator = () => {
             <Stack.Screen
               name="Home"
               component={HomeScreen}
-              options={{ title: 'LockPlan' }}
+              options={{ title: 'VocalClerk' }}
             />
             <Stack.Screen
               name="CreateTask"
