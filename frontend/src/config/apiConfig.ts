@@ -18,11 +18,14 @@ export let API_URL = DEFAULT_API_URL;
 // Function to initialize the API URL from AsyncStorage
 export const initializeApiUrl = async () => {
   try {
-    const storedApiUrl = await AsyncStorage.getItem('api_url');
+    const storedApiUrl = await AsyncStorage.getItem('apiUrl');
     if (storedApiUrl) {
       API_URL = storedApiUrl;
       // Update axios default base URL
       updateAxiosBaseUrl(API_URL);
+      console.log('API URL initialized from storage:', API_URL);
+    } else {
+      console.log('Using default API URL:', API_URL);
     }
   } catch (error) {
     console.error('Error loading API URL from storage:', error);
@@ -32,10 +35,11 @@ export const initializeApiUrl = async () => {
 // Function to update the API URL
 export const updateApiUrl = async (newUrl: string) => {
   try {
-    await AsyncStorage.setItem('api_url', newUrl);
+    await AsyncStorage.setItem('apiUrl', newUrl);
     API_URL = newUrl;
     // Update axios default base URL
     updateAxiosBaseUrl(API_URL);
+    console.log('API URL updated and saved:', API_URL);
     return true;
   } catch (error) {
     console.error('Error saving API URL to storage:', error);

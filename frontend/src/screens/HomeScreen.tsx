@@ -590,6 +590,12 @@ const HomeScreen = ({ navigation }: any) => {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.iconButton}
+            onPress={() => navigation.navigate('Settings')}
+          >
+            <Text style={styles.iconButtonText}>⚙️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
             onPress={toggleViewMode}
           >
             <Text style={styles.iconButtonText}>{viewMode === 'list' ? '📊' : '📋'}</Text>
