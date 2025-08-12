@@ -58,13 +58,31 @@ public class QianwenAIProcessor implements AIProcessor {
      * @return The formatted prompt
      */
     private String buildPrompt(String inputText) {
-        return "Extract tasks, time information, people, and categories from the following text. " +
-                "Return the result as a JSON array where each item is a task with the following structure: " +
-                "{\"title\": \"task title\", \"description\": \"task description\", " +
-                "\"dueDate\": \"ISO date time\", \"reminderTime\": \"ISO date time\", " +
-                "\"priority\": \"LOW|MEDIUM|HIGH|URGENT\", \"category\": \"category name\", " +
-                "\"tags\": [\"tag1\", \"tag2\"]}\n\n" +
-                "Text: " + inputText;
+        return "你是一个任务提取助手，请从以下文本中提取任务信息，并按照指定格式返回JSON数组。\n\n" +
+                "请提取以下信息：\n" +
+                "1. 任务标题：简洁明了地概括任务\n" +
+                "2. 任务描述：详细说明任务内容\n" +
+                "3. 截止日期：如果文本中提到了具体日期或时间，请转换为ISO格式的日期时间；如果没有明确提到，则设置为当前时间后24小时\n" +
+                "4. 提醒时间：如果文本中提到了提醒时间，请转换为ISO格式；如果没有明确提到，则设置为截止日期前15分钟\n" +
+                "5. 优先级：根据文本内容判断任务优先级（LOW、MEDIUM、HIGH、URGENT）\n" +
+                "6. 分类：根据任务内容确定适当的分类\n" +
+                "7. 标签：提取相关的关键词作为标签\n\n" +
+                
+                "返回格式必须是一个JSON数组，每个任务是一个对象，结构如下：\n" +
+                "[\n" +
+                "  {\n" +
+                "    \"title\": \"任务标题\",\n" +
+                "    \"description\": \"任务详细描述\",\n" +
+                "    \"dueDate\": \"YYYY-MM-DDThh:mm:ss\",\n" +
+                "    \"reminderTime\": \"YYYY-MM-DDThh:mm:ss\",\n" +
+                "    \"priority\": \"LOW|MEDIUM|HIGH|URGENT\",\n" +
+                "    \"category\": \"分类名称\",\n" +
+                "    \"tags\": [\"标签1\", \"标签2\"]\n" +
+                "  }\n" +
+                "]\n\n" +
+                
+                "请只返回JSON数组，不要包含其他解释文本。\n\n" +
+                "文本: " + inputText;
     }
 
     /**
@@ -110,20 +128,41 @@ public class QianwenAIProcessor implements AIProcessor {
      */
     private List<Map<String, Object>> parseResponse(String response) {
         try {
-            // Extract JSON array from the response
-            int startIndex = response.indexOf('[');
-            int endIndex = response.lastIndexOf(']') + 1;
+            logger.debug("Raw response from Qianwen: {}", response);
+            
+            // Clean up the response to extract just the JSON array
+            String cleanedResponse = response.trim();
+            
+            // Handle markdown code blocks that might be in the response
+            if (cleanedResponse.contains("```json")) {
+                int startIndex = cleanedResponse.indexOf("```json") + 7;
+                int endIndex = cleanedResponse.indexOf("```", startIndex);
+                if (endIndex > startIndex) {
+                    cleanedResponse = cleanedResponse.substring(startIndex, endIndex).trim();
+                }
+            } else if (cleanedResponse.contains("```")) {
+                int startIndex = cleanedResponse.indexOf("```") + 3;
+                int endIndex = cleanedResponse.indexOf("```", startIndex);
+                if (endIndex > startIndex) {
+                    cleanedResponse = cleanedResponse.substring(startIndex, endIndex).trim();
+                }
+            }
+            
+            // Find the JSON array in the cleaned response
+            int startIndex = cleanedResponse.indexOf('[');
+            int endIndex = cleanedResponse.lastIndexOf(']') + 1;
             
             if (startIndex >= 0 && endIndex > startIndex) {
-                String jsonArray = response.substring(startIndex, endIndex);
+                String jsonArray = cleanedResponse.substring(startIndex, endIndex);
+                logger.debug("Extracted JSON array: {}", jsonArray);
                 return objectMapper.readValue(jsonArray, new TypeReference<List<Map<String, Object>>>() {});
             } else {
-                logger.warn("Could not find JSON array in response: {}", response);
-                return new ArrayList<>();
+                logger.warn("Could not find JSON array in response: {}", cleanedResponse);
+                return fallbackProcessing(cleanedResponse);
             }
         } catch (JsonProcessingException e) {
             logger.error("Error parsing Qianwen response", e);
-            return new ArrayList<>();
+            return fallbackProcessing(response);
         }
     }
 
@@ -138,10 +177,36 @@ public class QianwenAIProcessor implements AIProcessor {
         Map<String, Object> task = new HashMap<>();
         
         // Create a simple task from the input
-        task.put("title", inputText.length() > 100 ? inputText.substring(0, 97) + "..." : inputText);
+        String title = inputText.length() > 100 ? inputText.substring(0, 97) + "..." : inputText;
+        
+        // Clean up the title if it contains markdown or code formatting
+        title = title.replaceAll("```.*?```", "").trim();
+        title = title.replaceAll("[\\[\\]{}\"']", "").trim();
+        
+        task.put("title", title);
         task.put("description", inputText);
+        
+        // Set due date to tomorrow
+        java.time.LocalDateTime tomorrow = java.time.LocalDateTime.now().plusDays(1);
+        task.put("dueDate", tomorrow.toString());
+        
+        // Set reminder time to 15 minutes before due date
+        task.put("reminderTime", tomorrow.minusMinutes(15).toString());
+        
         task.put("priority", "MEDIUM");
         task.put("category", "General");
+        
+        // Extract potential tags from the input text
+        List<String> tags = new ArrayList<>();
+        String[] words = inputText.split("\\s+");
+        for (String word : words) {
+            if (word.length() > 4 && Character.isUpperCase(word.charAt(0))) {
+                tags.add(word.replaceAll("[^a-zA-Z0-9]", ""));
+            }
+        }
+        if (!tags.isEmpty()) {
+            task.put("tags", tags.subList(0, Math.min(tags.size(), 3)));
+        }
         
         result.add(task);
         return result;
