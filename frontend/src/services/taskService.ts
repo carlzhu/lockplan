@@ -38,6 +38,7 @@ export interface Task {
   priority?: string;
   reminder?: string;
   tags?: string[];
+  createdAt?: string; // Added creation date field
 }
 
 export const getTasks = async () => {

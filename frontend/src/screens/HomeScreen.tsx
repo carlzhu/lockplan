@@ -9,18 +9,49 @@ import {
   RefreshControl,
   Alert,
   Image,
+  TextInput,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { getTasks, deleteTask, completeTask, Task } from '../services/taskService';
 import { AuthContext } from '../context/AuthContext';
 
+// Define view mode types
+type ViewMode = 'list' | 'grid';
+
+// Define sort options
+type SortOption = 'dueDate' | 'priority' | 'createdAt' | 'title';
+
 const HomeScreen = ({ navigation }: any) => {
+  // Helper function to format dates consistently as yyyy-MM-dd HH:mm:ss
+  const formatDateConsistently = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+  
+  // State variables
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('dueDate');
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  
   const { user, logout } = useContext(AuthContext);
   const isInitialMount = useRef(true);
   const lastFocusTime = useRef(Date.now());
 
+  // Function to fetch tasks from the API
   const fetchTasks = async (showLoading = true) => {
     try {
       if (showLoading) {
@@ -28,6 +59,7 @@ const HomeScreen = ({ navigation }: any) => {
       }
       const data = await getTasks();
       setTasks(data);
+      applyFiltersAndSort(data); // Apply filters and sorting to the fetched data
     } catch (error: any) {
       console.error('Error fetching tasks:', error);
       
@@ -52,6 +84,62 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
+  // Function to apply filters and sorting to tasks
+  const applyFiltersAndSort = useCallback((tasksToProcess = tasks) => {
+    // First apply search filter
+    let result = tasksToProcess.filter(task => {
+      const matchesSearch = searchQuery === '' || 
+        task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      // Apply priority filter if set
+      const matchesPriority = !priorityFilter || 
+        (task.priority && task.priority.toLowerCase() === priorityFilter.toLowerCase());
+      
+      return matchesSearch && matchesPriority;
+    });
+    
+    // Then sort the filtered results
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'dueDate':
+          // Sort by due date (tasks with no due date go to the end)
+          if (!a.dueDate) return 1;
+          if (!b.dueDate) return -1;
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        
+        case 'priority':
+          // Sort by priority (high > medium > low)
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          const aPriority = a.priority ? a.priority.toLowerCase() : 'low';
+          const bPriority = b.priority ? b.priority.toLowerCase() : 'low';
+          return priorityOrder[aPriority as keyof typeof priorityOrder] - 
+                 priorityOrder[bPriority as keyof typeof priorityOrder];
+        
+        case 'createdAt':
+          // Sort by creation date
+          if (!a.createdAt) return 1;
+          if (!b.createdAt) return -1;
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        
+        case 'title':
+          // Sort alphabetically by title
+          return a.title.localeCompare(b.title);
+        
+        default:
+          return 0;
+      }
+    });
+    
+    setFilteredTasks(result);
+  }, [searchQuery, priorityFilter, sortBy, tasks]);
+
+  // Apply filters and sorting whenever relevant state changes
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [applyFiltersAndSort, searchQuery, priorityFilter, sortBy]);
+
+  // Initial data fetch and focus listener setup
   useEffect(() => {
     // Initial fetch on component mount
     fetchTasks();
@@ -117,21 +205,18 @@ const HomeScreen = ({ navigation }: any) => {
   };
 
   const renderItem = ({ item }: { item: Task }) => {
-    // Format date to show both date and time if available
-    let formattedDate = 'No due date';
+    // Format due date in consistent format: yyyy-MM-dd HH:mm:ss
+    let formattedDueDate = 'No due date';
     if (item.dueDate) {
       const date = new Date(item.dueDate);
-      const dateOptions: Intl.DateTimeFormatOptions = { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
-      };
-      const timeOptions: Intl.DateTimeFormatOptions = { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      };
-      
-      formattedDate = `${date.toLocaleDateString(undefined, dateOptions)} at ${date.toLocaleTimeString(undefined, timeOptions)}`;
+      formattedDueDate = formatDateConsistently(date);
+    }
+    
+    // Format creation date in consistent format: yyyy-MM-dd HH:mm:ss
+    let formattedCreatedDate = 'Unknown';
+    if (item.createdAt) {
+      const date = new Date(item.createdAt);
+      formattedCreatedDate = formatDateConsistently(date);
     }
     
     // Determine status indicator color
@@ -161,20 +246,28 @@ const HomeScreen = ({ navigation }: any) => {
             )}
           </View>
           
-          {item.description && (
-            <Text 
-              style={[styles.taskDescription, item.completed && styles.completedText]}
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
-              {item.description}
-            </Text>
-          )}
+          <Text 
+            style={[
+              styles.taskDescription, 
+              item.completed && styles.completedText,
+              !item.description && styles.emptyDescription
+            ]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {item.description || " \n "}
+          </Text>
           
           <View style={styles.taskMeta}>
             <View style={styles.dateContainer}>
+              <Text style={styles.dateIcon}>📅</Text>
+              <Text style={styles.taskDate}>Created: {formattedCreatedDate}</Text>
+            </View>
+          </View>
+          <View style={styles.taskMeta}>
+            <View style={styles.dateContainer}>
               <Text style={styles.dateIcon}>🕒</Text>
-              <Text style={styles.taskDate}>{formattedDate}</Text>
+              <Text style={styles.taskDate}>Due: {formattedDueDate}</Text>
             </View>
           </View>
         </View>
@@ -226,16 +319,292 @@ const HomeScreen = ({ navigation }: any) => {
     );
   }
 
+  // Toggle between list and grid view
+  const toggleViewMode = () => {
+    setViewMode(viewMode === 'list' ? 'grid' : 'list');
+  };
+
+  // Render the sort modal
+  const renderSortModal = () => (
+    <Modal
+      visible={sortModalVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1} 
+        onPress={() => setSortModalVisible(false)}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Sort Tasks By</Text>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, sortBy === 'dueDate' && styles.selectedOption]} 
+            onPress={() => {
+              setSortBy('dueDate');
+              setSortModalVisible(false);
+            }}
+          >
+            <Text style={styles.modalOptionText}>Due Date</Text>
+            {sortBy === 'dueDate' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, sortBy === 'priority' && styles.selectedOption]} 
+            onPress={() => {
+              setSortBy('priority');
+              setSortModalVisible(false);
+            }}
+          >
+            <Text style={styles.modalOptionText}>Priority</Text>
+            {sortBy === 'priority' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, sortBy === 'createdAt' && styles.selectedOption]} 
+            onPress={() => {
+              setSortBy('createdAt');
+              setSortModalVisible(false);
+            }}
+          >
+            <Text style={styles.modalOptionText}>Creation Date</Text>
+            {sortBy === 'createdAt' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, sortBy === 'title' && styles.selectedOption]} 
+            onPress={() => {
+              setSortBy('title');
+              setSortModalVisible(false);
+            }}
+          >
+            <Text style={styles.modalOptionText}>Title (A-Z)</Text>
+            {sortBy === 'title' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setSortModalVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Render the filter modal
+  const renderFilterModal = () => (
+    <Modal
+      visible={filterModalVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={() => setFilterModalVisible(false)}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay} 
+        activeOpacity={1} 
+        onPress={() => setFilterModalVisible(false)}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Filter by Priority</Text>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, priorityFilter === null && styles.selectedOption]} 
+            onPress={() => {
+              setPriorityFilter(null);
+              setFilterModalVisible(false);
+            }}
+          >
+            <Text style={styles.modalOptionText}>All Priorities</Text>
+            {priorityFilter === null && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, priorityFilter === 'high' && styles.selectedOption]} 
+            onPress={() => {
+              setPriorityFilter('high');
+              setFilterModalVisible(false);
+            }}
+          >
+            <View style={styles.priorityOptionContent}>
+              <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor('high') }]} />
+              <Text style={styles.modalOptionText}>High Priority</Text>
+            </View>
+            {priorityFilter === 'high' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, priorityFilter === 'medium' && styles.selectedOption]} 
+            onPress={() => {
+              setPriorityFilter('medium');
+              setFilterModalVisible(false);
+            }}
+          >
+            <View style={styles.priorityOptionContent}>
+              <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor('medium') }]} />
+              <Text style={styles.modalOptionText}>Medium Priority</Text>
+            </View>
+            {priorityFilter === 'medium' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.modalOption, priorityFilter === 'low' && styles.selectedOption]} 
+            onPress={() => {
+              setPriorityFilter('low');
+              setFilterModalVisible(false);
+            }}
+          >
+            <View style={styles.priorityOptionContent}>
+              <View style={[styles.priorityIndicator, { backgroundColor: getPriorityColor('low') }]} />
+              <Text style={styles.modalOptionText}>Low Priority</Text>
+            </View>
+            {priorityFilter === 'low' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => setFilterModalVisible(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Render grid item for grid view
+  const renderGridItem = ({ item }: { item: Task }) => {
+    // Format due date in consistent format: yyyy-MM-dd HH:mm:ss
+    let formattedDueDate = 'No due date';
+    if (item.dueDate) {
+      const date = new Date(item.dueDate);
+      formattedDueDate = formatDateConsistently(date);
+    }
+    
+    // Format creation date in consistent format: yyyy-MM-dd HH:mm:ss
+    let formattedCreatedDate = 'Unknown';
+    if (item.createdAt) {
+      const date = new Date(item.createdAt);
+      formattedCreatedDate = formatDateConsistently(date);
+    }
+    
+    // Determine status indicator color
+    const statusColor = item.completed ? '#34c759' : 
+                        (item.dueDate && new Date(item.dueDate) < new Date() ? '#ff3b30' : '#007aff');
+    
+    return (
+      <TouchableOpacity 
+        style={[
+          styles.gridItem, 
+          item.completed && styles.completedTask,
+          { borderTopColor: getPriorityColor(item.priority || 'low'), borderTopWidth: 4 }
+        ]}
+        onPress={() => navigation.navigate('EditTask', { taskId: item.id })}
+      >
+        <View>
+          <View style={styles.gridItemHeader}>
+            <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+            {item.priority && (
+              <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(item.priority) }]}>
+                <Text style={styles.priorityText}>{item.priority}</Text>
+              </View>
+            )}
+          </View>
+          
+          <Text 
+            style={[styles.gridItemTitle, item.completed && styles.completedText]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.title}
+          </Text>
+          
+          <Text 
+            style={[
+              styles.gridItemDescription, 
+              item.completed && styles.completedText,
+              !item.description && styles.emptyDescription
+            ]}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {item.description || " \n "}
+          </Text>
+        </View>
+        
+        <View style={styles.gridItemFooter}>
+          <Text style={styles.gridItemDate}>📅 {formattedCreatedDate.substring(0, 10)}</Text>
+          <Text style={styles.gridItemDate}>🕒 {formattedDueDate.substring(0, 10)}</Text>
+          
+          <View style={styles.gridItemActions}>
+            {!item.completed && (
+              <TouchableOpacity
+                style={[styles.smallActionButton, styles.completeButton]}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleCompleteTask(item.id!);
+                }}
+              >
+                <Text style={styles.smallActionButtonText}>✓</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.smallActionButton, styles.editButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                navigation.navigate('EditTask', { taskId: item.id });
+              }}
+            >
+              <Text style={styles.smallActionButtonText}>✎</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.smallActionButton, styles.deleteButton]}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteTask(item.id!);
+              }}
+            >
+              <Text style={styles.smallActionButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4a90e2" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Tasks</Text>
         <View style={styles.headerButtons}>
           <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate('Settings')}
+            style={styles.iconButton}
+            onPress={toggleViewMode}
           >
-            <Text style={styles.settingsButtonText}>⚙️</Text>
+            <Text style={styles.iconButtonText}>{viewMode === 'list' ? '📊' : '📋'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setSortModalVisible(true)}
+          >
+            <Text style={styles.iconButtonText}>🔄</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setFilterModalVisible(true)}
+          >
+            <Text style={styles.iconButtonText}>🔍</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addButton}
@@ -246,14 +615,29 @@ const HomeScreen = ({ navigation }: any) => {
         </View>
       </View>
 
-      {tasks.length === 0 ? (
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search tasks..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          clearButtonMode="while-editing"
+        />
+      </View>
+
+      {filteredTasks.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No tasks found</Text>
-          <Text style={styles.emptySubtext}>Tap + to add a new task</Text>
+          <Text style={styles.emptySubtext}>
+            {tasks.length > 0 
+              ? "Try adjusting your search or filters" 
+              : "Tap + to add a new task"}
+          </Text>
         </View>
-      ) : (
+      ) : viewMode === 'list' ? (
         <FlatList
-          data={tasks}
+          key="list"
+          data={filteredTasks}
           renderItem={renderItem}
           keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
           contentContainerStyle={styles.listContainer}
@@ -261,7 +645,23 @@ const HomeScreen = ({ navigation }: any) => {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
         />
+      ) : (
+        <FlatList
+          key="grid"
+          data={filteredTasks}
+          renderItem={renderGridItem}
+          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          contentContainerStyle={styles.gridContainer}
+          numColumns={2}
+          columnWrapperStyle={styles.gridColumnWrapper}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+        />
       )}
+
+      {renderSortModal()}
+      {renderFilterModal()}
 
       <TouchableOpacity
         style={styles.floatingButton}
@@ -274,6 +674,173 @@ const HomeScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  // Search container styles
+  searchContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5ea',
+  },
+  searchInput: {
+    backgroundColor: '#f2f2f7',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  
+  // Icon button styles
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f2f2f7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
+    elevation: 1,
+  },
+  iconButtonText: {
+    fontSize: 16,
+  },
+  
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5ea',
+  },
+  selectedOption: {
+    backgroundColor: '#f2f2f7',
+  },
+  modalOptionText: {
+    fontSize: 16,
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#007aff',
+  },
+  closeButton: {
+    marginTop: 16,
+    backgroundColor: '#007aff',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  priorityOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priorityIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  
+  // Grid view styles
+  gridContainer: {
+    padding: 8,
+  },
+  gridColumnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  gridItem: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
+    minHeight: 160,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  gridItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  gridItemTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1c1c1e',
+    marginBottom: 6,
+  },
+  gridItemDescription: {
+    fontSize: 12,
+    color: '#3c3c43',
+    marginBottom: 8,
+    lineHeight: 16,
+    minHeight: 32,
+  },
+  gridItemFooter: {
+    marginTop: 'auto',
+  },
+  gridItemDate: {
+    fontSize: 11,
+    color: '#636366',
+    marginBottom: 8,
+  },
+  gridItemActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  smallActionButton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 6,
+  },
+  smallActionButtonText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -397,13 +964,18 @@ const styles = StyleSheet.create({
   taskDescription: {
     fontSize: 12,
     color: '#3c3c43',
-    marginBottom: 5,
+    marginBottom: 3,
     lineHeight: 16,
+    minHeight: 32, // Ensures space for 2 lines
+  },
+  emptyDescription: {
+    opacity: 0,
   },
   taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 1,
+    marginBottom: 1,
   },
   dateContainer: {
     flexDirection: 'row',
@@ -432,15 +1004,15 @@ const styles = StyleSheet.create({
   taskActions: {
     flexDirection: 'column',
     justifyContent: 'space-between',
-    marginLeft: 6,
+    marginLeft: 4,
   },
   actionButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
@@ -458,7 +1030,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   emptyContainer: {
