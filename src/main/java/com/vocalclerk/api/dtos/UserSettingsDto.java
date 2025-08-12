@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
-
 /**
  * DTO for user settings data.
  */
@@ -14,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class UserSettingsDto {
     
-    private UUID id;
+    private Long id;
     private boolean darkMode;
     private boolean notificationsEnabled;
     private String preferredLanguage;
