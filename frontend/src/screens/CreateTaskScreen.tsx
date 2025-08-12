@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,40 +24,78 @@ const CreateTaskScreen = ({ navigation }: any) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [priority, setPriority] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Add a listener to handle tapping outside the picker
+  useEffect(() => {
+    const backHandler = () => {
+      if (showDatePicker || showTimePicker) {
+        setShowDatePicker(false);
+        setShowTimePicker(false);
+        return true; // Prevent default behavior
+      }
+      return false;
+    };
+    
+    // This will be called when the component unmounts
+    return () => {
+      // Clean up
+    };
+  }, [showDatePicker, showTimePicker]);
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      setDueDateTime(selectedDate);
-      
-      // Format date as YYYY-MM-DD
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      const hours = String(selectedDate.getHours()).padStart(2, '0');
-      const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
-      
-      setDueDate(`${year}-${month}-${day} ${hours}:${minutes}`);
+    setShowTimePicker(false); // Close time picker if open
+    
+    // If event is "dismissed" (clicked outside) or selectedDate is undefined, do nothing
+    if (event.type === 'dismissed' || !selectedDate) {
+      return;
     }
+    
+    // Keep the time from the existing date if there is one
+    if (dueDate) {
+      const existingDate = new Date(dueDateTime);
+      selectedDate.setHours(existingDate.getHours());
+      selectedDate.setMinutes(existingDate.getMinutes());
+      selectedDate.setSeconds(existingDate.getSeconds());
+    }
+    
+    setDueDateTime(selectedDate);
+    
+    // Format date as YYYY-MM-DD HH:MM:SS
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedDate.getDate()).padStart(2, '0');
+    const hours = String(selectedDate.getHours()).padStart(2, '0');
+    const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+    const seconds = String(selectedDate.getSeconds()).padStart(2, '0');
+    
+    setDueDate(`${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
   };
 
   const onTimeChange = (event: any, selectedTime?: Date) => {
     setShowTimePicker(false);
-    if (selectedTime) {
-      const newDateTime = new Date(dueDateTime);
-      newDateTime.setHours(selectedTime.getHours());
-      newDateTime.setMinutes(selectedTime.getMinutes());
-      setDueDateTime(newDateTime);
-      
-      // Update the formatted date string
-      const year = newDateTime.getFullYear();
-      const month = String(newDateTime.getMonth() + 1).padStart(2, '0');
-      const day = String(newDateTime.getDate()).padStart(2, '0');
-      const hours = String(newDateTime.getHours()).padStart(2, '0');
-      const minutes = String(newDateTime.getMinutes()).padStart(2, '0');
-      
-      setDueDate(`${year}-${month}-${day} ${hours}:${minutes}`);
+    setShowDatePicker(false); // Close date picker if open
+    
+    // If event is "dismissed" (clicked outside) or selectedTime is undefined, do nothing
+    if (event.type === 'dismissed' || !selectedTime) {
+      return;
     }
+    
+    const newDateTime = new Date(dueDateTime);
+    newDateTime.setHours(selectedTime.getHours());
+    newDateTime.setMinutes(selectedTime.getMinutes());
+    newDateTime.setSeconds(selectedTime.getSeconds());
+    setDueDateTime(newDateTime);
+    
+    // Update the formatted date string
+    const year = newDateTime.getFullYear();
+    const month = String(newDateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(newDateTime.getDate()).padStart(2, '0');
+    const hours = String(newDateTime.getHours()).padStart(2, '0');
+    const minutes = String(newDateTime.getMinutes()).padStart(2, '0');
+    const seconds = String(newDateTime.getSeconds()).padStart(2, '0');
+    
+    setDueDate(`${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
   };
 
   const handleSubmit = async () => {
@@ -97,12 +136,18 @@ const CreateTaskScreen = ({ navigation }: any) => {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.formContainer}>
+    <TouchableWithoutFeedback onPress={() => {
+      if (showDatePicker || showTimePicker) {
+        setShowDatePicker(false);
+        setShowTimePicker(false);
+      }
+    }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.formContainer}>
           <Text style={styles.title}>Create New Task</Text>
 
           <View style={styles.inputContainer}>
@@ -130,40 +175,65 @@ const CreateTaskScreen = ({ navigation }: any) => {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Due Date and Time</Text>
-            <TouchableOpacity 
-              style={styles.dateTimeInput}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Text style={dueDate ? styles.dateTimeText : styles.dateTimePlaceholder}>
-                {dueDate || "Select date and time"}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.dateTimeContainer}>
+              <View style={styles.dateTimeInputWrapper}>
+                <Text style={dueDate ? styles.dateTimeText : styles.dateTimePlaceholder}>
+                  {dueDate ? dueDate : "No date selected"}
+                </Text>
+              </View>
+              <View style={styles.dateTimeButtonsContainer}>
+                <TouchableOpacity 
+                  style={styles.dateButton}
+                  onPress={() => {
+                    setShowDatePicker(true);
+                    setShowTimePicker(false); // Close time picker when date picker is opened
+                  }}
+                >
+                  <Text style={styles.dateButtonText}>📅 Date</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.timeButton}
+                  onPress={() => {
+                    setShowTimePicker(true);
+                    setShowDatePicker(false); // Close date picker when time picker is opened
+                  }}
+                  disabled={!dueDate}
+                >
+                  <Text style={[styles.timeButtonText, !dueDate && styles.disabledButtonText]}>🕒 Time</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             
             {showDatePicker && (
               <DateTimePicker
                 value={dueDateTime}
                 mode="date"
-                display="default"
+                display="spinner"
                 onChange={onDateChange}
+                style={styles.datePicker}
               />
-            )}
-            
-            {!showDatePicker && dueDate && (
-              <TouchableOpacity 
-                style={[styles.button, styles.timeButton]}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Text style={styles.timeButtonText}>Set Time</Text>
-              </TouchableOpacity>
             )}
             
             {showTimePicker && (
               <DateTimePicker
                 value={dueDateTime}
                 mode="time"
-                display="default"
+                display="spinner"
                 onChange={onTimeChange}
+                style={styles.datePicker}
               />
+            )}
+            
+            {dueDate && (
+              <TouchableOpacity 
+                style={styles.clearDateButton}
+                onPress={() => {
+                  setDueDate('');
+                  setDueDateTime(new Date());
+                }}
+              >
+                <Text style={styles.clearDateButtonText}>Clear Date</Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -203,9 +273,10 @@ const CreateTaskScreen = ({ navigation }: any) => {
               <Text style={styles.buttonText}>Create Task</Text>
             )}
           </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -288,14 +359,52 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  dateTimeInput: {
+  dateTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateTimeInputWrapper: {
+    flex: 1,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
-    fontSize: 16,
+    marginRight: 10,
+  },
+  dateTimeButtonsContainer: {
+    flexDirection: 'row',
+  },
+  dateButton: {
+    backgroundColor: '#4a90e2',
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 5,
+    alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 80,
+  },
+  dateButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  timeButton: {
+    backgroundColor: '#5ac8fa',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  timeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  disabledButtonText: {
+    color: 'rgba(255, 255, 255, 0.5)',
   },
   dateTimeText: {
     fontSize: 16,
@@ -305,14 +414,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
   },
-  timeButton: {
+  datePicker: {
     marginTop: 10,
-    backgroundColor: '#6c757d',
-    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
-  timeButtonText: {
+  clearDateButton: {
+    marginTop: 10,
+    backgroundColor: '#ff3b30',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  clearDateButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
   },
 });
