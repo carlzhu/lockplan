@@ -1,48 +1,134 @@
 package com.vocalclerk.domain.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.util.UUID;
 
 /**
- * Entity representing user settings in the system.
+ * Entity for storing user settings
  */
 @Entity
 @Table(name = "user_settings")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class UserSettings {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     
-    @OneToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "user_id")
     private User user;
     
-    @Column(nullable = false)
-    private boolean darkMode = false;
+    @Column(name = "username", unique = true)
+    private String username;
     
-    @Column(nullable = false)
-    private boolean notificationsEnabled = true;
+    @Column(name = "dark_mode")
+    private boolean darkMode;
     
-    @Column(nullable = false)
-    private String preferredLanguage = "en";
+    @Column(name = "notifications_enabled")
+    private boolean notificationsEnabled;
     
-    @Column(nullable = false)
-    private String aiModel = "ollama"; // ollama or qianwen
+    @Column(name = "preferred_language")
+    private String preferredLanguage;
     
-    @Column(nullable = false)
-    private boolean biometricAuthEnabled = false;
+    @Column(name = "ai_model")
+    private String aiModel;
     
-    @Column(nullable = false)
-    private boolean dataBackupEnabled = true;
+    @Column(name = "biometric_auth_enabled")
+    private boolean biometricAuthEnabled;
     
-    @Column(nullable = false)
-    private int reminderLeadTime = 15; // minutes before task due time
+    @Column(name = "data_backup_enabled")
+    private boolean dataBackupEnabled;
+    
+    @Column(name = "reminder_lead_time")
+    private int reminderLeadTime;
+    
+    // Default constructor
+    public UserSettings() {
+    }
+    
+    // Constructor with fields
+    public UserSettings(String username, String aiModel) {
+        this.username = username;
+        this.aiModel = aiModel;
+    }
+    
+    // Getters and setters
+    public Long getId() {
+        return id;
+    }
+    
+    public void setId(Long id) {
+        this.id = id;
+    }
+    
+    public User getUser() {
+        return user;
+    }
+    
+    public void setUser(User user) {
+        this.user = user;
+    }
+    
+    public String getUsername() {
+        return username;
+    }
+    
+    public void setUsername(String username) {
+        this.username = username;
+    }
+    
+    public String getAiModel() {
+        return aiModel;
+    }
+    
+    public void setAiModel(String aiModel) {
+        this.aiModel = aiModel;
+    }
+    
+    public boolean isDarkMode() {
+        return darkMode;
+    }
+    
+    public void setDarkMode(boolean darkMode) {
+        this.darkMode = darkMode;
+    }
+    
+    public boolean isNotificationsEnabled() {
+        return notificationsEnabled;
+    }
+    
+    public void setNotificationsEnabled(boolean notificationsEnabled) {
+        this.notificationsEnabled = notificationsEnabled;
+    }
+    
+    public String getPreferredLanguage() {
+        return preferredLanguage;
+    }
+    
+    public void setPreferredLanguage(String preferredLanguage) {
+        this.preferredLanguage = preferredLanguage;
+    }
+    
+    public boolean isBiometricAuthEnabled() {
+        return biometricAuthEnabled;
+    }
+    
+    public void setBiometricAuthEnabled(boolean biometricAuthEnabled) {
+        this.biometricAuthEnabled = biometricAuthEnabled;
+    }
+    
+    public boolean isDataBackupEnabled() {
+        return dataBackupEnabled;
+    }
+    
+    public void setDataBackupEnabled(boolean dataBackupEnabled) {
+        this.dataBackupEnabled = dataBackupEnabled;
+    }
+    
+    public int getReminderLeadTime() {
+        return reminderLeadTime;
+    }
+    
+    public void setReminderLeadTime(int reminderLeadTime) {
+        this.reminderLeadTime = reminderLeadTime;
+    }
 }
