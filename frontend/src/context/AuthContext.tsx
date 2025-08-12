@@ -49,8 +49,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const interceptor = axios.interceptors.response.use(
       response => response,
       error => {
-        if (error.response && error.response.status === 403) {
-          console.log('Received 403 error, logging out');
+        // Only handle 403 errors for auth-related endpoints
+        if (error.response && 
+            error.response.status === 403 && 
+            error.config && 
+            error.config.url && 
+            !error.config.url.includes('/settings/') && 
+            !error.config.url.includes('/user/settings/')) {
+          console.log('Received 403 error from auth endpoint, logging out');
           handleLogout();
         }
         return Promise.reject(error);

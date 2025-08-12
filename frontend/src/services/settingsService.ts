@@ -23,12 +23,26 @@ export const setAIModel = async (model: AIModel): Promise<boolean> => {
   try {
     await AsyncStorage.setItem('aiModel', model);
     
-    // Update the backend about the AI model change
-    try {
-      await axios.post('/api/user/settings/ai-model', { model });
-    } catch (error) {
-      console.error('Error updating AI model on server:', error);
-      // Continue even if server update fails
+    // Only try to update the backend if we have a valid token
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      try {
+        // Check if the endpoint exists before calling it
+        await axios.get('/api/user/settings/check', { timeout: 2000 })
+          .then(async () => {
+            // If the check endpoint exists, try to update the AI model
+            await axios.post('/api/user/settings/ai-model', { model }, { 
+              headers: { 'Authorization': `Bearer ${token}` },
+              timeout: 3000
+            });
+          })
+          .catch(error => {
+            console.log('Settings endpoint not available, skipping server update');
+          });
+      } catch (error) {
+        console.log('Error checking settings endpoint, skipping server update');
+        // Continue even if server update fails
+      }
     }
     
     return true;
