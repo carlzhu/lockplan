@@ -45,7 +45,7 @@ public class TasksController {
 
     @GetMapping("/category/{categoryId}")
     @Operation(summary = "Get tasks by category", description = "Retrieves tasks in a specific category")
-    public ResponseEntity<List<TaskDto>> getTasksByCategory(@PathVariable UUID categoryId) {
+    public ResponseEntity<List<TaskDto>> getTasksByCategory(@PathVariable String categoryId) {
         List<TaskDto> tasks = taskService.getTasksByCategory(categoryId);
         return ResponseEntity.ok(tasks);
     }
@@ -59,7 +59,7 @@ public class TasksController {
 
     @GetMapping("/{taskId}")
     @Operation(summary = "Get task by ID", description = "Retrieves a specific task by its ID")
-    public ResponseEntity<TaskDto> getTaskById(@PathVariable UUID taskId) {
+    public ResponseEntity<TaskDto> getTaskById(@PathVariable String taskId) {
         TaskDto task = taskService.getTaskById(taskId);
         return ResponseEntity.ok(task);
     }
@@ -74,7 +74,7 @@ public class TasksController {
     @PutMapping("/{taskId}")
     @Operation(summary = "Update task", description = "Updates an existing task")
     public ResponseEntity<TaskDto> updateTask(
-            @PathVariable UUID taskId,
+            @PathVariable String taskId,
             @Valid @RequestBody UpdateTaskDto updateTaskDto) {
         TaskDto updatedTask = taskService.updateTask(taskId, updateTaskDto);
         return ResponseEntity.ok(updatedTask);
@@ -82,21 +82,21 @@ public class TasksController {
 
     @DeleteMapping("/{taskId}")
     @Operation(summary = "Delete task", description = "Deletes a task")
-    public ResponseEntity<Void> deleteTask(@PathVariable UUID taskId) {
+    public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
         taskService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{taskId}/complete")
     @Operation(summary = "Mark task as completed", description = "Marks a task as completed")
-    public ResponseEntity<TaskDto> markTaskAsCompleted(@PathVariable UUID taskId) {
+    public ResponseEntity<TaskDto> markTaskAsCompleted(@PathVariable String taskId) {
         TaskDto updatedTask = taskService.markTaskAsCompleted(taskId);
         return ResponseEntity.ok(updatedTask);
     }
 
     @PatchMapping("/{taskId}/incomplete")
     @Operation(summary = "Mark task as not completed", description = "Marks a task as not completed")
-    public ResponseEntity<TaskDto> markTaskAsNotCompleted(@PathVariable UUID taskId) {
+    public ResponseEntity<TaskDto> markTaskAsNotCompleted(@PathVariable String taskId) {
         TaskDto updatedTask = taskService.markTaskAsNotCompleted(taskId);
         return ResponseEntity.ok(updatedTask);
     }

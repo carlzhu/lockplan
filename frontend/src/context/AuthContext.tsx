@@ -100,22 +100,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update axios base URL before making the request
       updateAxiosBaseUrl(API_URL);
       
+      console.log('Attempting login with username:', email);
       const response = await axios.post('/api/auth/login', {
         username: email, // Changed from 'email' to 'username' to match backend expectations
         password,
       });
 
-      const { accessToken, user } = response.data;
+      console.log('Login response received:', response.status);
       
+      // Check if we have the expected response structure
+      if (!response.data || !response.data.accessToken) {
+        console.error('Invalid login response structure:', response.data);
+        throw new Error('Invalid server response');
+      }
+
+      const { accessToken, user } = response.data;
+      console.log('Token received, user data:', user ? 'exists' : 'missing');
+      
+      // Store token and user data
       await AsyncStorage.setItem('token', accessToken);
       await AsyncStorage.setItem('user', JSON.stringify(user));
       
+      // Set authorization header for all future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      console.log('Authorization header set after login');
       
       setUser(user);
       setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Login failed', error);
+      console.log('Authentication state updated, user is now authenticated');
+    } catch (error: any) {
+      console.error('Login failed', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
       Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
       throw error;
     } finally {

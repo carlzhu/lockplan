@@ -22,7 +22,8 @@ public class Task {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(columnDefinition = "VARCHAR(36)")
+    private String id;
     
     @Column(nullable = false)
     private String title;

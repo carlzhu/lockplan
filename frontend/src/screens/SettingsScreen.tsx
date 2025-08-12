@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL, DEFAULT_API_URL, updateApiUrl } from '../config/apiConfig';
 import { AuthContext } from '../context/AuthContext';
 
-const SettingsScreen = ({ navigation }) => {
+const SettingsScreen = ({ navigation }: any) => {
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [savedUrl, setSavedUrl] = useState(API_URL);
   const { logout } = useContext(AuthContext);
@@ -118,6 +118,19 @@ const SettingsScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Developer Tools</Text>
+          <TouchableOpacity
+            style={[styles.button, styles.devButton]}
+            onPress={() => navigation.navigate('ApiTest')}
+          >
+            <Text style={styles.buttonText}>API Testing Tools</Text>
+          </TouchableOpacity>
+          <Text style={styles.helpText}>
+            Use this tool to diagnose API connection issues and test endpoints directly.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
           <TouchableOpacity
             style={[styles.button, styles.logoutButton]}
@@ -204,6 +217,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: 'center',
+  },
+  devButton: {
+    backgroundColor: '#5856d6',
+    marginBottom: 10,
   },
   logoutButton: {
     backgroundColor: '#ff3b30',

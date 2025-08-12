@@ -11,6 +11,7 @@ import CreateTaskScreen from '../screens/CreateTaskScreen';
 import EditTaskScreen from '../screens/EditTaskScreen';
 import TaskInputScreen from '../screens/TaskInputScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ApiTestScreen from '../screens/ApiTestScreen';
 
 // Context
 import { AuthContext } from '../context/AuthContext';
@@ -82,6 +83,11 @@ const AppNavigator = () => {
               name="Settings"
               component={SettingsScreen}
               options={{ title: 'Settings' }}
+            />
+            <Stack.Screen
+              name="ApiTest"
+              component={ApiTestScreen}
+              options={{ title: 'API Testing' }}
             />
           </>
         )}

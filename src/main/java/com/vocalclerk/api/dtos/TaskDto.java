@@ -16,14 +16,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class TaskDto {
-    private UUID id;
+    private String id;
     private String title;
     private String description;
     private LocalDateTime dueDate;
     private LocalDateTime reminderTime;
     private boolean completed;
     private TaskPriority priority;
-    private UUID categoryId;
+    private String categoryId;
     private String categoryName;
     private List<String> tags;
     private LocalDateTime createdAt;

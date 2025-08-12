@@ -32,7 +32,7 @@ public class UpdateTaskDto {
     
     private TaskPriority priority;
     
-    private UUID categoryId;
+    private String categoryId;
     
     private List<String> tags;
 }

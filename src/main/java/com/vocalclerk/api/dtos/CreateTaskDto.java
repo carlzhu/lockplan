@@ -32,7 +32,7 @@ public class CreateTaskDto {
     
     private TaskPriority priority = TaskPriority.MEDIUM;
     
-    private UUID categoryId;
+    private String categoryId;
     
     private List<String> tags;
     

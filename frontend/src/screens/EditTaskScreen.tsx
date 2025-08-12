@@ -154,19 +154,47 @@ const EditTaskScreen = ({ route, navigation }: any) => {
         title,
         description,
         dueDate: formattedDueDate,
+        // Keep the priority as is - the taskService will convert it to uppercase
         priority: priority || undefined,
       };
 
-      await updateTask(taskId, updatedTask);
-      // Return to the previous screen without triggering a full refresh
-      navigation.goBack();
-      // Show success message after navigation to prevent UI blocking
-      setTimeout(() => {
-        Alert.alert('Success', 'Task updated successfully!');
-      }, 300);
-    } catch (error) {
-      console.error('Error updating task:', error);
-      Alert.alert('Error', 'Failed to update task. Please try again.');
+      console.log('Task ID type:', typeof taskId);
+      console.log('Task ID value:', taskId);
+
+      console.log('Updating task with ID:', taskId, 'Type:', typeof taskId);
+      console.log('Task data:', JSON.stringify(updatedTask));
+      
+      try {
+        await updateTask(taskId, updatedTask);
+        console.log('Task updated successfully');
+        
+        // Return to the previous screen without triggering a full refresh
+        navigation.goBack();
+        
+        // Show success message after navigation to prevent UI blocking
+        setTimeout(() => {
+          Alert.alert('Success', 'Task updated successfully!');
+        }, 300);
+      } catch (apiError: any) {
+        console.error('API Error details:', apiError);
+        
+        // Check if there's a response with error details
+        if (apiError.response) {
+          console.error('Error response:', apiError.response.status, apiError.response.data);
+          Alert.alert('Error', `Failed to update task: ${apiError.response.status} - ${JSON.stringify(apiError.response.data)}`);
+        } else if (apiError.request) {
+          // Request was made but no response received
+          console.error('No response received:', apiError.request);
+          Alert.alert('Error', 'No response from server. Please check your connection.');
+        } else {
+          // Something else caused the error
+          console.error('Error message:', apiError.message);
+          Alert.alert('Error', `Failed to update task: ${apiError.message}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('General error in handleSubmit:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }

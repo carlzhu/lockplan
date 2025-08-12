@@ -33,7 +33,7 @@ public interface ITaskService {
      * @param categoryId The category ID
      * @return List of task DTOs
      */
-    List<TaskDto> getTasksByCategory(UUID categoryId);
+    List<TaskDto> getTasksByCategory(String categoryId);
     
     /**
      * Get a specific task by ID.
@@ -41,7 +41,7 @@ public interface ITaskService {
      * @param taskId The task ID
      * @return The task DTO
      */
-    TaskDto getTaskById(UUID taskId);
+    TaskDto getTaskById(String taskId);
     
     /**
      * Create a new task.
@@ -58,14 +58,14 @@ public interface ITaskService {
      * @param updateTaskDto The task update data
      * @return The updated task DTO
      */
-    TaskDto updateTask(UUID taskId, UpdateTaskDto updateTaskDto);
+    TaskDto updateTask(String taskId, UpdateTaskDto updateTaskDto);
     
     /**
      * Delete a task.
      *
      * @param taskId The task ID
      */
-    void deleteTask(UUID taskId);
+    void deleteTask(String taskId);
     
     /**
      * Mark a task as completed.
@@ -73,7 +73,7 @@ public interface ITaskService {
      * @param taskId The task ID
      * @return The updated task DTO
      */
-    TaskDto markTaskAsCompleted(UUID taskId);
+    TaskDto markTaskAsCompleted(String taskId);
     
     /**
      * Mark a task as not completed.
@@ -81,7 +81,7 @@ public interface ITaskService {
      * @param taskId The task ID
      * @return The updated task DTO
      */
-    TaskDto markTaskAsNotCompleted(UUID taskId);
+    TaskDto markTaskAsNotCompleted(String taskId);
     
     /**
      * Process raw input text to create tasks.

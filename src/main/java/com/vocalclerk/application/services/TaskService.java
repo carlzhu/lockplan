@@ -65,16 +65,21 @@ public class TaskService implements ITaskService {
     }
 
     @Override
-    public List<TaskDto> getTasksByCategory(UUID categoryId) {
+    public List<TaskDto> getTasksByCategory(String categoryId) {
         User user = currentUser.getUser();
-        Category category = categoryRepository.findByIdAndUser(categoryId, user)
-                .orElseThrow(() -> new IllegalArgumentException("Category not found"));
-        List<Task> tasks = taskRepository.findByCategoryAndUserOrderByDueDateAscCreatedAtDesc(category, user);
-        return tasks.stream().map(this::convertToDto).collect(Collectors.toList());
+        try {
+            UUID uuid = UUID.fromString(categoryId);
+            Category category = categoryRepository.findByIdAndUser(uuid, user)
+                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+            List<Task> tasks = taskRepository.findByCategoryAndUserOrderByDueDateAscCreatedAtDesc(category, user);
+            return tasks.stream().map(this::convertToDto).collect(Collectors.toList());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid category ID format");
+        }
     }
 
     @Override
-    public TaskDto getTaskById(UUID taskId) {
+    public TaskDto getTaskById(String taskId) {
         User user = currentUser.getUser();
         Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -96,9 +101,14 @@ public class TaskService implements ITaskService {
         task.setOriginalInput(createTaskDto.getOriginalInput());
         
         if (createTaskDto.getCategoryId() != null) {
-            Category category = categoryRepository.findByIdAndUser(createTaskDto.getCategoryId(), user)
-                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
-            task.setCategory(category);
+            try {
+                UUID categoryUuid = UUID.fromString(createTaskDto.getCategoryId());
+                Category category = categoryRepository.findByIdAndUser(categoryUuid, user)
+                        .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+                task.setCategory(category);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid category ID format");
+            }
         } else {
             // Use default category if none specified
             Category defaultCategory = categoryRepository.findByUserAndIsDefault(user, true)
@@ -126,7 +136,7 @@ public class TaskService implements ITaskService {
 
     @Override
     @Transactional
-    public TaskDto updateTask(UUID taskId, UpdateTaskDto updateTaskDto) {
+    public TaskDto updateTask(String taskId, UpdateTaskDto updateTaskDto) {
         User user = currentUser.getUser();
         Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -160,9 +170,14 @@ public class TaskService implements ITaskService {
         }
         
         if (updateTaskDto.getCategoryId() != null) {
-            Category category = categoryRepository.findByIdAndUser(updateTaskDto.getCategoryId(), user)
-                    .orElseThrow(() -> new IllegalArgumentException("Category not found"));
-            task.setCategory(category);
+            try {
+                UUID categoryUuid = UUID.fromString(updateTaskDto.getCategoryId());
+                Category category = categoryRepository.findByIdAndUser(categoryUuid, user)
+                        .orElseThrow(() -> new IllegalArgumentException("Category not found"));
+                task.setCategory(category);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid category ID format");
+            }
         }
         
         Task updatedTask = taskRepository.save(task);
@@ -181,7 +196,7 @@ public class TaskService implements ITaskService {
 
     @Override
     @Transactional
-    public void deleteTask(UUID taskId) {
+    public void deleteTask(String taskId) {
         User user = currentUser.getUser();
         Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -190,7 +205,7 @@ public class TaskService implements ITaskService {
 
     @Override
     @Transactional
-    public TaskDto markTaskAsCompleted(UUID taskId) {
+    public TaskDto markTaskAsCompleted(String taskId) {
         User user = currentUser.getUser();
         Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -201,7 +216,7 @@ public class TaskService implements ITaskService {
 
     @Override
     @Transactional
-    public TaskDto markTaskAsNotCompleted(UUID taskId) {
+    public TaskDto markTaskAsNotCompleted(String taskId) {
         User user = currentUser.getUser();
         Task task = taskRepository.findByIdAndUser(taskId, user)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -321,7 +336,7 @@ public class TaskService implements ITaskService {
         dto.setCompletedAt(task.getCompletedAt());
         
         if (task.getCategory() != null) {
-            dto.setCategoryId(task.getCategory().getId());
+            dto.setCategoryId(task.getCategory().getId().toString());
             dto.setCategoryName(task.getCategory().getName());
         }
         

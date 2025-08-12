@@ -28,7 +28,7 @@ const HomeScreen = ({ navigation }: any) => {
       }
       const data = await getTasks();
       setTasks(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching tasks:', error);
       
       // Check if it's a 403 error (unauthorized)
@@ -56,15 +56,19 @@ const HomeScreen = ({ navigation }: any) => {
     // Initial fetch on component mount
     fetchTasks();
 
-    // Setup focus listener with debounce logic
+    // Setup focus listener with improved logic
     const unsubscribe = navigation.addListener('focus', () => {
+      console.log('HomeScreen focused');
       const now = Date.now();
-      // Only fetch if this is not the initial mount and at least 300ms have passed since last focus
-      // This prevents double fetching on initial render and rapid re-fetches
-      if (!isInitialMount.current && now - lastFocusTime.current > 300) {
-        // Use background fetch (no loading indicator) to prevent screen flicker
-        fetchTasks(false);
-      }
+      
+      // Always refresh when returning from CreateTask or EditTask screens
+      // This ensures we see new or updated tasks immediately
+      const timeSinceLastFocus = now - lastFocusTime.current;
+      console.log('Time since last focus:', timeSinceLastFocus, 'ms');
+      
+      // Use background fetch (no loading indicator) to prevent screen flicker
+      fetchTasks(false);
+      
       lastFocusTime.current = now;
       isInitialMount.current = false;
     });
@@ -77,7 +81,7 @@ const HomeScreen = ({ navigation }: any) => {
     fetchTasks();
   };
 
-  const handleDeleteTask = async (id: number) => {
+  const handleDeleteTask = async (id: string | number) => {
     Alert.alert(
       'Delete Task',
       'Are you sure you want to delete this task?',
@@ -90,7 +94,7 @@ const HomeScreen = ({ navigation }: any) => {
             try {
               await deleteTask(id);
               setTasks(tasks.filter(task => task.id !== id));
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error deleting task:', error);
               Alert.alert('Error', 'Failed to delete task. Please try again.');
             }
@@ -100,13 +104,13 @@ const HomeScreen = ({ navigation }: any) => {
     );
   };
 
-  const handleCompleteTask = async (id: number) => {
+  const handleCompleteTask = async (id: string | number) => {
     try {
       const updatedTask = await completeTask(id);
       setTasks(
         tasks.map(task => (task.id === id ? { ...task, completed: true } : task))
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error completing task:', error);
       Alert.alert('Error', 'Failed to complete task. Please try again.');
     }

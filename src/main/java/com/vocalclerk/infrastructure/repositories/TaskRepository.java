@@ -15,7 +15,7 @@ import java.util.UUID;
  * Repository for Task entity operations.
  */
 @Repository
-public interface TaskRepository extends JpaRepository<Task, UUID> {
+public interface TaskRepository extends JpaRepository<Task, String> {
     
     /**
      * Find a task by ID and user.
@@ -24,7 +24,7 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
      * @param user The user
      * @return Optional containing the task if found
      */
-    Optional<Task> findByIdAndUser(UUID id, User user);
+    Optional<Task> findByIdAndUser(String id, User user);
     
     /**
      * Find tasks by user ordered by due date and creation date.
