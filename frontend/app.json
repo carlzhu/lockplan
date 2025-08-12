@@ -12,19 +12,33 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vocalclerk.app"
+      "bundleIdentifier": "com.vocalclerk.app",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.vocalclerk.app",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "INTERNET"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
     }
   }
 }
