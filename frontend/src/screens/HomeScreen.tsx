@@ -54,10 +54,15 @@ const HomeScreen = ({ navigation }: any) => {
   // Function to fetch tasks from the API
   const fetchTasks = async (showLoading = true) => {
     try {
+      // Only show loading indicator for initial load or manual refresh
+      // This prevents screen flicker when returning from other screens
       if (showLoading) {
         setLoading(true);
       }
+      
       const data = await getTasks();
+      
+      // Use functional updates to ensure we're working with the latest state
       setTasks(data);
       applyFiltersAndSort(data); // Apply filters and sorting to the fetched data
     } catch (error: any) {
@@ -76,7 +81,10 @@ const HomeScreen = ({ navigation }: any) => {
           ]
         );
       } else {
-        Alert.alert('Error', 'Failed to load tasks. Please try again.');
+        // Only show error alert for manual refreshes, not background updates
+        if (showLoading || refreshing) {
+          Alert.alert('Error', 'Failed to load tasks. Please try again.');
+        }
       }
     } finally {
       setLoading(false);
@@ -141,24 +149,37 @@ const HomeScreen = ({ navigation }: any) => {
 
   // Initial data fetch and focus listener setup
   useEffect(() => {
-    // Initial fetch on component mount
-    fetchTasks();
-
-    // Setup focus listener with improved logic
+    // Set initial mount state
+    isInitialMount.current = true;
+    
+    // Initial fetch on component mount - only time we show the loading indicator
+    fetchTasks(true);
+    
+    // Mark that initial mount is complete after the first render
+    return () => {
+      isInitialMount.current = false;
+    };
+  }, []);
+  
+  // Setup navigation focus listener
+  useEffect(() => {
+    // Setup focus listener with silent refresh logic
     const unsubscribe = navigation.addListener('focus', () => {
       console.log('HomeScreen focused');
       const now = Date.now();
       
-      // Always refresh when returning from CreateTask or EditTask screens
-      // This ensures we see new or updated tasks immediately
+      // Calculate time since last focus
       const timeSinceLastFocus = now - lastFocusTime.current;
       console.log('Time since last focus:', timeSinceLastFocus, 'ms');
       
-      // Use background fetch (no loading indicator) to prevent screen flicker
-      fetchTasks(false);
+      // Skip if this is the initial mount (already handled by the first useEffect)
+      if (!isInitialMount.current) {
+        // Always use silent refresh (no loading indicator) when returning to this screen
+        // This prevents the screen from flickering
+        fetchTasks(false);
+      }
       
       lastFocusTime.current = now;
-      isInitialMount.current = false;
     });
 
     return unsubscribe;
@@ -311,7 +332,8 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
-  if (loading && !refreshing) {
+  // Only show loading indicator on initial mount, not when returning to the screen
+  if (loading && !refreshing && isInitialMount.current) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4a90e2" />
@@ -575,13 +597,7 @@ const HomeScreen = ({ navigation }: any) => {
     );
   };
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4a90e2" />
-      </View>
-    );
-  }
+  // Loading check is now handled above
 
   return (
     <View style={styles.container}>
