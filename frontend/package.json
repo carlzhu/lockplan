@@ -6,7 +6,17 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:ios": "eas build --platform ios --local",
+    "build:android": "eas build --platform android --local",
+    "build:ios-dev": "eas build --profile development --platform ios --local",
+    "build:android-dev": "eas build --profile development --platform android --local",
+    "bundle:ios": "node create-bundle.js",
+    "bundle:android": "node create-android-bundle.js",
+    "bundle:all": "node create-all-bundles.js",
+    "run:device": "node run-on-device.js",
+    "build:prod": "node build-production.js",
+    "dev": "node run-dev.js"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -23,7 +33,10 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@react-native-community/cli": "latest",
     "@types/react": "~19.0.10",
+    "canvas": "^3.1.2",
+    "eas-cli": "^16.17.4",
     "typescript": "~5.8.3"
   },
   "private": true

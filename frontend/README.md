@@ -1,137 +1,94 @@
-# LockPlan Mobile App
+# VocalClerk App
 
-A React Native mobile application for task management with natural language processing capabilities.
+## Fixing "No script URL provided" Error on Physical Devices
 
-## Deployment Instructions for iPhone 16 Pro
+When running the app on a physical device, you might encounter a "No script URL provided" error. This happens because the app is trying to connect to a development server that isn't accessible from your device.
 
-### Prerequisites
+To fix this issue, we've created scripts that bundle the JavaScript code directly into the app, so it doesn't need to connect to a development server.
 
-- Xcode 15 or later
-- Apple Developer account (for physical device deployment)
-- Node.js and npm
-- Expo CLI (`npm install -g expo-cli`)
+## Quick Start with NPM Scripts
 
-### Running on iPhone 16 Pro Simulator
+We've added convenient npm scripts to make it easier to run these commands:
 
-1. Start the Expo development server:
-   ```
-   cd VocalClerk
-   npx expo start
-   ```
+| Command | Description |
+|---------|-------------|
+| `npm run bundle:ios` | Create iOS JavaScript bundle |
+| `npm run bundle:android` | Create Android JavaScript bundle |
+| `npm run bundle:all` | Create both iOS and Android bundles |
+| `npm run run:device` | Run the app on a connected device |
+| `npm run build:prod` | Build production version of the app |
+| `npm run dev` | Run the app in development mode |
 
-2. Press `i` in the terminal to open the iOS simulator
-   - If prompted to select a simulator, choose "iPhone 16 Pro"
+## For iOS Devices
 
-3. The app will build and launch in the simulator
+### Step 1: Create the iOS JavaScript Bundle
 
-### Running on Physical iPhone 16 Pro Device
+Run the following command to create a production JavaScript bundle for iOS:
 
-#### Using Expo Go (for development)
+```bash
+npm run bundle:ios
+# or
+node create-bundle.js
+```
 
-1. Install the Expo Go app from the App Store on your iPhone 16 Pro
-2. Start the Expo development server with tunnel option:
-   ```
-   cd VocalClerk
-   npx expo start --tunnel
-   ```
-3. Scan the QR code with your iPhone's camera app
-4. The app will open in Expo Go
+This will create a file called `main.jsbundle` in the `ios` directory, along with all the necessary assets.
 
-#### Using Xcode (for development or production)
+## For Android Devices
 
-1. Build the native iOS project:
-   ```
-   cd VocalClerk
-   npx expo prebuild -p ios
-   ```
+### Step 1: Create the Android JavaScript Bundle
 
-2. Open the Xcode project:
-   ```
-   open ios/VocalClerk.xcworkspace
-   ```
+Run the following command to create a production JavaScript bundle for Android:
 
-3. Connect your iPhone 16 Pro to your Mac with a USB cable
-4. In Xcode:
-   - Select your iPhone from the device dropdown
-   - Set up code signing with your Apple Developer account
-   - Click the Play button to build and run
+```bash
+npm run bundle:android
+# or
+node create-android-bundle.js
+```
 
-#### Production Deployment to App Store
+This will create a file called `index.android.bundle` in the `android/app/src/main/assets` directory, along with all the necessary assets in the `android/app/src/main/res` directory.
 
-1. Install EAS CLI:
-   ```
-   npm install -g eas-cli
-   ```
+## Running on a Device
 
-2. Log in to your Expo account:
-   ```
-   eas login
-   ```
+### Step 2: Run the App on Your Device
 
-3. Configure your project for builds:
-   ```
-   eas build:configure
-   ```
+After creating the appropriate bundle, you can run the app on your connected device:
 
-4. Create a production build for iOS:
-   ```
-   eas build --platform ios
-   ```
+```bash
+npm run run:device
+# or
+node run-on-device.js
+```
 
-5. Submit to App Store:
-   ```
-   eas submit --platform ios
-   ```
+Follow the prompts to select iOS or Android. This will build the app and install it on your connected device.
 
-## Configuring the API URL
+## Building for Production
 
-The app is designed to connect to your backend server. You can configure the API URL in the Settings screen:
+If you want to create a full production build that you can distribute:
 
-1. Launch the app
-2. Tap the gear icon (⚙️) in the top right corner
-3. Enter your backend server URL:
-   - For iOS Simulator: `http://localhost:8080`
-   - For Android Emulator: `http://10.0.2.2:8080`
-   - For Physical Device: `http://YOUR_COMPUTER_IP:8080`
-4. Tap "Save Settings"
-5. Restart the app for changes to take effect
+```bash
+npm run build:prod
+# or
+node build-production.js
+```
+
+Follow the prompts to select iOS, Android, or both. This will create production builds of the app that include the JavaScript bundles.
+
+## Development Mode
+
+To run the app in development mode (connecting to a development server):
+
+```bash
+npm run dev
+# or
+node run-dev.js
+```
 
 ## Troubleshooting
 
-### Connection Issues
+If you still encounter issues:
 
-If you're having trouble connecting to the backend:
-
-1. Make sure your backend server is running
-2. Check that the API URL is correctly configured in the Settings screen
-3. For physical devices, ensure your device and computer are on the same network
-4. Check for any firewall settings that might be blocking connections
-
-### Build Issues
-
-If you encounter build errors:
-
-1. Make sure CocoaPods is installed:
-   ```
-   sudo gem install cocoapods
-   ```
-
-2. Install dependencies:
-   ```
-   cd VocalClerk/ios
-   pod install
-   ```
-
-3. Clean the build:
-   ```
-   cd VocalClerk
-   npx expo start --clear
-   ```
-
-## Features
-
-- User authentication (login/register)
-- Task management (create, edit, delete, complete)
-- Natural language task creation
-- Configurable API endpoint
-- Cross-platform compatibility (iOS and Android)
+1. Make sure your device is connected via USB and trusted
+2. Ensure the device is unlocked when installing the app
+3. Check that you have the latest version of Xcode installed (for iOS)
+4. Check that you have the latest version of Android Studio installed (for Android)
+5. Try restarting your device and development computer

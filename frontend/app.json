@@ -12,13 +12,25 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/your-project-id"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vocalclerk.app",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "jsEngine": "hermes",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "bundleUrl": "./ios/main.jsbundle"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,9 +40,11 @@
       "package": "com.vocalclerk.app",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
+      "jsEngine": "hermes",
       "permissions": [
         "INTERNET"
-      ]
+      ],
+      "bundleUrl": "./android/app/src/main/assets/index.android.bundle"
     },
     "web": {
       "favicon": "./assets/favicon.png"
