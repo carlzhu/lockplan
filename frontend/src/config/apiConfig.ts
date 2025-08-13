@@ -8,8 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // For physical devices, use the actual IP address of your backend server
 
 // Default API URL - this will be used if no custom URL is set
-// For production, use your actual server URL
-export const DEFAULT_API_URL = 'https://your-production-server.com';
+// For iOS simulator, use localhost:8080
+// For Android emulator, use 10.0.2.2:8080
+// For physical devices, use the actual IP address of your backend server
+export const DEFAULT_API_URL = 'http://192.168.221.151:8080';
 
 // This is the API URL that will be used by the app
 // It's initialized with the default value but will be updated when the app starts

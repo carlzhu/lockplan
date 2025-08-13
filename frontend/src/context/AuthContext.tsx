@@ -107,9 +107,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       updateAxiosBaseUrl(API_URL);
       
       console.log('Attempting login with username:', email);
+      console.log('Using API URL:', axios.defaults.baseURL);
+      
+      // Add timeout to prevent hanging on network issues
       const response = await axios.post('/api/auth/login', {
         username: email, // Changed from 'email' to 'username' to match backend expectations
         password,
+      }, {
+        timeout: 10000, // 10 second timeout
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
 
       console.log('Login response received:', response.status);
@@ -117,6 +126,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Check if we have the expected response structure
       if (!response.data || !response.data.accessToken) {
         console.error('Invalid login response structure:', response.data);
+        Alert.alert(
+          'Login Failed', 
+          'The server response was invalid. Please check your API settings and try again.'
+        );
         throw new Error('Invalid server response');
       }
 
@@ -136,11 +149,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.log('Authentication state updated, user is now authenticated');
     } catch (error: any) {
       console.error('Login failed', error.message);
-      if (error.response) {
+      
+      let errorMessage = 'Invalid credentials. Please try again.';
+      
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Connection timed out. Please check your network and API settings.';
+      } else if (error.message.includes('Network Error')) {
+        errorMessage = 'Network error. Please check your internet connection and API settings.';
+      } else if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
+        
+        // Handle specific status codes
+        if (error.response.status === 418) {
+          errorMessage = 'Server configuration error. Please check your API settings.';
+        } else if (error.response.status === 401) {
+          errorMessage = 'Invalid username or password.';
+        } else if (error.response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
       }
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      
+      Alert.alert('Login Failed', errorMessage);
       throw error;
     } finally {
       setLoading(false);

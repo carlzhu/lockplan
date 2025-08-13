@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,27 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Alert,
+  Modal,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
+import { API_URL, updateApiUrl } from '../config/apiConfig';
 
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [serverUrl, setServerUrl] = useState(API_URL);
+  const [showServerConfig, setShowServerConfig] = useState(false);
   const { login, loading } = useContext(AuthContext);
+
+  // Load the current API URL when the component mounts
+  useEffect(() => {
+    setServerUrl(API_URL);
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert('Please enter both email and password');
+      Alert.alert('Missing Information', 'Please enter both email and password');
       return;
     }
 
@@ -27,6 +37,29 @@ const LoginScreen = ({ navigation }: any) => {
       await login(email, password);
     } catch (error) {
       // Error is handled in the AuthContext
+      console.log('Login error handled in component:', error);
+    }
+  };
+
+  const handleSaveServerConfig = async () => {
+    if (!serverUrl) {
+      Alert.alert('Invalid URL', 'Please enter a valid server URL');
+      return;
+    }
+
+    try {
+      // Validate URL format
+      if (!serverUrl.startsWith('http://') && !serverUrl.startsWith('https://')) {
+        Alert.alert('Invalid URL', 'Server URL must start with http:// or https://');
+        return;
+      }
+
+      await updateApiUrl(serverUrl);
+      setShowServerConfig(false);
+      Alert.alert('Success', 'Server configuration updated successfully');
+    } catch (error) {
+      console.error('Error saving server config:', error);
+      Alert.alert('Error', 'Failed to save server configuration');
     }
   };
 
@@ -81,8 +114,57 @@ const LoginScreen = ({ navigation }: any) => {
               <Text style={styles.registerLink}>Register</Text>
             </TouchableOpacity>
           </View>
+          
+          <TouchableOpacity 
+            style={styles.serverConfigButton}
+            onPress={() => setShowServerConfig(true)}
+          >
+            <Text style={styles.serverConfigText}>Server Configuration</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+      
+      {/* Server Configuration Modal */}
+      <Modal
+        visible={showServerConfig}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowServerConfig(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Server Configuration</Text>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Server URL</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="http://your-server-url:8080"
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                autoCapitalize="none"
+                keyboardType="url"
+              />
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowServerConfig(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleSaveServerConfig}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
