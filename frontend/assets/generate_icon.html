@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VocalClerk Icon Generator</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        #canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+    
+    <script>
+        // Get the canvas element
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set background color (gradient)
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+        gradient.addColorStop(0, '#4a90e2');
+        gradient.addColorStop(1, '#34c759');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 1024);
+        
+        // Add a subtle pattern
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        for (let i = 0; i < 1024; i += 20) {
+            ctx.fillRect(0, i, 1024, 10);
+        }
+        
+        // Draw a white circle in the center
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(512, 512, 400, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw text "VC" (VocalClerk)
+        ctx.fillStyle = '#4a90e2';
+        ctx.font = 'bold 400px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VC', 512, 512);
+        
+        // Function to download the canvas as an image
+        function downloadCanvas() {
+            const link = document.createElement('a');
+            link.download = 'vocalclerk-icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Download automatically after a short delay
+        setTimeout(downloadCanvas, 500);
+    </script>
+</body>
+</html>
