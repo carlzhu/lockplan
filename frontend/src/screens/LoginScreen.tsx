@@ -13,7 +13,8 @@ import {
   Modal,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { API_URL, updateApiUrl } from '../config/apiConfig';
+import { API_URL, updateApiUrl, isPhysicalDevice } from '../config/apiConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
@@ -25,6 +26,20 @@ const LoginScreen = ({ navigation }: any) => {
   // Load the current API URL when the component mounts
   useEffect(() => {
     setServerUrl(API_URL);
+    
+    // Check if we're on a physical device and should show server config
+    const checkPhysicalDevice = async () => {
+      const isPhysical = await isPhysicalDevice();
+      if (isPhysical) {
+        // Show server config modal automatically on first launch on physical device
+        const hasConfigured = await AsyncStorage.getItem('hasConfiguredServer');
+        if (!hasConfigured) {
+          setShowServerConfig(true);
+        }
+      }
+    };
+    
+    checkPhysicalDevice();
   }, []);
 
   const handleLogin = async () => {
@@ -55,6 +70,10 @@ const LoginScreen = ({ navigation }: any) => {
       }
 
       await updateApiUrl(serverUrl);
+      
+      // Mark that the user has configured the server
+      await AsyncStorage.setItem('hasConfiguredServer', 'true');
+      
       setShowServerConfig(false);
       Alert.alert('Success', 'Server configuration updated successfully');
     } catch (error) {
@@ -233,6 +252,66 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     color: '#4a90e2',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Server configuration button styles
+  serverConfigButton: {
+    marginTop: 20,
+    alignItems: 'center',
+    padding: 10,
+  },
+  serverConfigText: {
+    color: '#4a90e2',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButton: {
+    backgroundColor: '#4a90e2',
+  },
+  saveButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

@@ -13,6 +13,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // For physical devices, use the actual IP address of your backend server
 export const DEFAULT_API_URL = 'http://192.168.221.151:8080';
 
+// Helper function to detect if running on a physical device
+export const isPhysicalDevice = async () => {
+  // This is a simple check - we could enhance this with device info libraries
+  // For now, we'll rely on the server configuration modal for physical devices
+  return true;
+};
+
 // This is the API URL that will be used by the app
 // It's initialized with the default value but will be updated when the app starts
 export let API_URL = DEFAULT_API_URL;
@@ -27,6 +34,11 @@ export const initializeApiUrl = async () => {
       updateAxiosBaseUrl(API_URL);
       console.log('API URL initialized from storage:', API_URL);
     } else {
+      // Check if we're on a physical device and prompt for configuration
+      const isPhysical = await isPhysicalDevice();
+      if (isPhysical) {
+        console.log('Physical device detected, using default API URL but server config should be shown');
+      }
       console.log('Using default API URL:', API_URL);
     }
   } catch (error) {
