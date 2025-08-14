@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   ToastAndroid,
+  Linking,
 } from 'react-native';
 import { createTaskFromText } from '../services/taskService';
 import { Audio } from 'expo-av';
@@ -27,35 +28,64 @@ const TaskInputScreen = ({ navigation }: any) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Request permissions when component mounts
-    const getPermissions = async () => {
+    // Request permissions and configure audio when component mounts
+    const setupAudio = async () => {
       try {
+        console.log('Setting up audio mode...');
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          staysActiveInBackground: false,
+          playThroughEarpieceAndroid: false,
+          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        });
+        
         console.log('Requesting audio recording permissions...');
         const { status } = await Audio.requestPermissionsAsync();
         console.log('Permission status:', status);
+        
         if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Please grant microphone permissions to use voice input');
+          Alert.alert(
+            'Permission Required', 
+            'Microphone access is required for voice input. Please enable it in your device settings.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { 
+                text: 'Open Settings', 
+                onPress: () => {
+                  // On iOS this will open the settings app
+                  if (Platform.OS === 'ios') {
+                    Linking.openURL('app-settings:');
+                  }
+                }
+              }
+            ]
+          );
         }
       } catch (error) {
-        console.error('Error requesting permissions:', error);
+        console.error('Error setting up audio:', error);
+        Alert.alert(
+          'Audio Setup Error',
+          'There was a problem setting up the audio recording. Please try again.'
+        );
       }
     };
     
-    getPermissions();
+    setupAudio();
     
-    // Configure audio mode for recording
-    Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-      staysActiveInBackground: false,
-      playThroughEarpieceAndroid: false,
-    });
-    
-    // Cleanup timer on unmount
+    // Cleanup timer and recording on unmount
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+      }
+      
+      // Make sure to unload any active recording when component unmounts
+      if (recording) {
+        recording.stopAndUnloadAsync().catch(error => 
+          console.error('Error stopping recording on unmount:', error)
+        );
       }
     };
   }, []);
@@ -63,23 +93,61 @@ const TaskInputScreen = ({ navigation }: any) => {
   const startRecording = async () => {
     try {
       console.log('Starting voice recording...');
+      
+      // Check permissions first
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required', 
+          'Microphone access is required for voice input. Please enable it in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Open Settings', 
+              onPress: () => {
+                if (Platform.OS === 'ios') {
+                  Linking.openURL('app-settings:');
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
+      
       setIsRecording(true);
       setRecordingStatus('正在录音...');
       setRecordingDuration(0);
       
-      // Prepare recording
+      // Prepare recording with more detailed options
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: true,
         staysActiveInBackground: false,
         playThroughEarpieceAndroid: false,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
       });
       
-      // Start recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      // Use more specific recording options for iOS
+      const recordingOptions = {
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        ios: {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.ios,
+          extension: '.m4a',
+          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
+        },
+        android: {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.android,
+          extension: '.m4a',
+          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+        },
+      };
+      
+      console.log('Creating recording with options:', JSON.stringify(recordingOptions));
+      const { recording } = await Audio.Recording.createAsync(recordingOptions);
+      console.log('Recording created successfully');
       setRecording(recording);
       
       // Start timer to track recording duration
@@ -88,10 +156,25 @@ const TaskInputScreen = ({ navigation }: any) => {
       }, 1000);
       
     } catch (error) {
-      console.error('Failed to start recording', error);
+      console.error('Failed to start recording:', error);
       setIsRecording(false);
       setRecordingStatus('');
-      Alert.alert('Error', 'Failed to start recording');
+      
+      // More detailed error message
+      let errorMessage = 'Failed to start recording. ';
+      
+      if (error instanceof Error) {
+        errorMessage += error.message;
+      }
+      
+      if (Platform.OS === 'ios') {
+        errorMessage += '\n\nPlease check that microphone permissions are enabled in Settings.';
+      }
+      
+      Alert.alert('Recording Error', errorMessage);
+      
+      // Fall back to simulation if recording fails
+      simulateVoiceToText();
     }
   };
   
@@ -327,6 +410,9 @@ const TaskInputScreen = ({ navigation }: any) => {
             </Text>
             <Text style={styles.tipsText}>
               • 录音时间越长，生成的任务描述可能越详细
+            </Text>
+            <Text style={styles.tipsText}>
+              • 如果录音失败，请确保已在设置中允许麦克风权限
             </Text>
           </View>
         </View>
