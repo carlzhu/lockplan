@@ -213,49 +213,58 @@ const TaskInputScreen = ({ navigation }: any) => {
   };
   
   const simulateVoiceToText = () => {
-    // Common task-related phrases in Chinese
-    const commonPhrases = [
-      "明天上午9点开会",
-      "提醒我下周一下午2点去医院",
-      "高优先级：完成项目报告",
-      "购物清单：牛奶，鸡蛋，面包",
-      "下周三下午3点与客户电话会议",
-      "记得给妈妈打电话",
-      "本周五前完成季度报告",
-      "安排下周团队建设活动",
-      "准备下周演讲材料",
-      "提前一天提醒我准备会议资料"
-    ];
-    
-    // Get a random phrase based on recording duration
-    // Longer recordings get longer phrases
-    const index = Math.min(
-      Math.floor(recordingDuration / 2), 
-      commonPhrases.length - 1
-    );
-    const randomPhrase = commonPhrases[index];
-    
     // Show processing status
     setRecordingStatus('语音转文字中...');
     
-    // Simulate typing the phrase character by character
-    let currentIndex = 0;
-    const typingInterval = setInterval(() => {
-      if (currentIndex <= randomPhrase.length) {
-        setText(randomPhrase.substring(0, currentIndex));
-        currentIndex++;
-      } else {
-        clearInterval(typingInterval);
-        
-        // Show success message
-        setRecordingStatus('语音已转换为文本');
-        
-        // Clear status after a delay
-        setTimeout(() => {
-          setRecordingStatus('');
-        }, 2000);
-      }
-    }, 50);
+    // Show a notification that this is a simulation
+    setTimeout(() => {
+      Alert.alert(
+        '模拟语音识别',
+        '当前版本使用模拟数据展示语音输入功能。实际录制的语音尚未被处理，这是技术预览版本。',
+        [{ text: '了解' }]
+      );
+      
+      // Common task-related phrases in Chinese
+      const commonPhrases = [
+        "明天上午9点开会",
+        "提醒我下周一下午2点去医院",
+        "高优先级：完成项目报告",
+        "购物清单：牛奶，鸡蛋，面包",
+        "下周三下午3点与客户电话会议",
+        "记得给妈妈打电话",
+        "本周五前完成季度报告",
+        "安排下周团队建设活动",
+        "准备下周演讲材料",
+        "提前一天提醒我准备会议资料"
+      ];
+      
+      // Get a random phrase based on recording duration
+      // Longer recordings get longer phrases
+      const index = Math.min(
+        Math.floor(recordingDuration / 2), 
+        commonPhrases.length - 1
+      );
+      const randomPhrase = commonPhrases[index];
+      
+      // Simulate typing the phrase character by character
+      let currentIndex = 0;
+      const typingInterval = setInterval(() => {
+        if (currentIndex <= randomPhrase.length) {
+          setText(randomPhrase.substring(0, currentIndex));
+          currentIndex++;
+        } else {
+          clearInterval(typingInterval);
+          
+          // Show success message
+          setRecordingStatus('模拟语音转换完成');
+          
+          // Clear status after a delay
+          setTimeout(() => {
+            setRecordingStatus('');
+          }, 2000);
+        }
+      }, 50);
+    }, 1000);
   };
 
   const handleSubmit = async () => {
@@ -405,10 +414,10 @@ const TaskInputScreen = ({ navigation }: any) => {
               • 点击麦克风按钮开始录音，再次点击停止录音
             </Text>
             <Text style={styles.tipsText}>
-              • 录音时间越长，生成的任务描述可能越详细
+              • 当前版本使用模拟数据展示语音输入功能
             </Text>
             <Text style={styles.tipsText}>
-              • 如果录音失败，请确保已在设置中允许麦克风权限
+              • 实际语音识别功能将在后续版本中实现
             </Text>
           </View>
         </View>
