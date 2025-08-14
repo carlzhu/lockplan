@@ -28,6 +28,8 @@ const TaskInputScreen = ({ navigation }: any) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Request permissions and configure audio when component mounts
     const setupAudio = async () => {
       try {
@@ -44,7 +46,7 @@ const TaskInputScreen = ({ navigation }: any) => {
         const { status } = await Audio.requestPermissionsAsync();
         console.log('Permission status:', status);
         
-        if (status !== 'granted') {
+        if (status !== 'granted' && isMounted) {
           Alert.alert(
             'Permission Required', 
             'Microphone access is required for voice input. Please enable it in your device settings.',
@@ -64,10 +66,12 @@ const TaskInputScreen = ({ navigation }: any) => {
         }
       } catch (error) {
         console.error('Error setting up audio:', error);
-        Alert.alert(
-          'Audio Setup Error',
-          'There was a problem setting up the audio recording. Please try again.'
-        );
+        if (isMounted) {
+          Alert.alert(
+            'Audio Setup Error',
+            'There was a problem setting up the audio recording. Please try again.'
+          );
+        }
       }
     };
     
@@ -75,15 +79,22 @@ const TaskInputScreen = ({ navigation }: any) => {
     
     // Cleanup timer and recording on unmount
     return () => {
+      isMounted = false;
+      
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
       
       // Make sure to unload any active recording when component unmounts
       if (recording) {
-        recording.stopAndUnloadAsync().catch(error => 
-          console.error('Error stopping recording on unmount:', error)
-        );
+        try {
+          recording.stopAndUnloadAsync().catch(error => 
+            console.error('Error stopping recording on unmount:', error)
+          );
+        } catch (error) {
+          console.error('Error during cleanup:', error);
+        }
       }
     };
   }, []);
@@ -117,40 +128,44 @@ const TaskInputScreen = ({ navigation }: any) => {
       setRecordingStatus('正在录音...');
       setRecordingDuration(0);
       
-      // Prepare recording with more detailed options
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        staysActiveInBackground: false,
-        playThroughEarpieceAndroid: false,
-      });
-      
-      // Use more specific recording options for iOS
-      const recordingOptions = {
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        ios: {
-          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.ios,
-          extension: '.m4a',
-          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
-        },
-        android: {
-          ...Audio.RecordingOptionsPresets.HIGH_QUALITY.android,
-          extension: '.m4a',
-          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
-        },
-      };
-      
-      console.log('Creating recording with options:', JSON.stringify(recordingOptions));
-      const { recording } = await Audio.Recording.createAsync(recordingOptions);
-      console.log('Recording created successfully');
-      setRecording(recording);
-      
-      // Start timer to track recording duration
-      timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-      
+      try {
+        // Prepare recording with more detailed options
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          staysActiveInBackground: false,
+          playThroughEarpieceAndroid: false,
+        });
+        
+        // Use more specific recording options for iOS
+        const recordingOptions = {
+          ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+          ios: {
+            ...Audio.RecordingOptionsPresets.HIGH_QUALITY.ios,
+            extension: '.m4a',
+            outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
+          },
+          android: {
+            ...Audio.RecordingOptionsPresets.HIGH_QUALITY.android,
+            extension: '.m4a',
+            outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+          },
+        };
+        
+        console.log('Creating recording with options:', JSON.stringify(recordingOptions));
+        const { recording } = await Audio.Recording.createAsync(recordingOptions);
+        console.log('Recording created successfully');
+        setRecording(recording);
+        
+        // Start timer to track recording duration
+        timerRef.current = setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
+      } catch (recordingError) {
+        console.error('Error during recording setup:', recordingError);
+        throw recordingError;
+      }
     } catch (error) {
       console.error('Failed to start recording:', error);
       setIsRecording(false);
@@ -188,18 +203,24 @@ const TaskInputScreen = ({ navigation }: any) => {
       // Stop recording
       if (!recording) {
         console.error('No recording to stop');
+        simulateVoiceToText();
         return;
       }
       
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecording(null);
-      
-      if (!uri) {
-        throw new Error('Recording URI is undefined');
+      try {
+        await recording.stopAndUnloadAsync();
+        const uri = recording.getURI();
+        setRecording(null);
+        
+        if (!uri) {
+          throw new Error('Recording URI is undefined');
+        }
+        
+        console.log('Recording stopped, URI:', uri);
+      } catch (stopError) {
+        console.error('Error stopping recording:', stopError);
+        throw stopError;
       }
-      
-      console.log('Recording stopped, URI:', uri);
       
       // For now, we'll simulate the speech-to-text conversion
       // In a real app, you would send this audio file to a speech-to-text service
@@ -208,7 +229,9 @@ const TaskInputScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('Failed to stop recording', error);
       setRecordingStatus('');
-      Alert.alert('Error', 'Failed to process recording');
+      
+      // Fall back to simulation even if stopping fails
+      simulateVoiceToText();
     }
   };
   
@@ -274,6 +297,26 @@ const TaskInputScreen = ({ navigation }: any) => {
     }
 
     try {
+      // Make sure any ongoing recording is stopped before submitting
+      if (isRecording && recording) {
+        try {
+          await recording.stopAndUnloadAsync().catch(e => 
+            console.error('Error stopping recording during submit:', e)
+          );
+          setRecording(null);
+          
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          
+          setIsRecording(false);
+        } catch (error) {
+          console.error('Error stopping recording during submit:', error);
+          // Continue with submission even if stopping recording fails
+        }
+      }
+      
       setLoading(true);
       const result = await createTaskFromText(text);
       
