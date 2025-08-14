@@ -30,7 +30,10 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "bundleUrl": "./ios/main.jsbundle"
+      "bundleUrl": "./ios/main.jsbundle",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "VocalClerk needs microphone access to record voice input for creating tasks"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -42,7 +45,8 @@
       "edgeToEdgeEnabled": true,
       "jsEngine": "hermes",
       "permissions": [
-        "INTERNET"
+        "INTERNET",
+        "RECORD_AUDIO"
       ],
       "bundleUrl": "./android/app/src/main/assets/index.android.bundle"
     },
