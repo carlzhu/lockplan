@@ -6,6 +6,7 @@ import com.vocalclerk.api.dtos.UpdateTaskDto;
 import com.vocalclerk.application.interfaces.ITaskService;
 import com.vocalclerk.domain.entities.*;
 import com.vocalclerk.infrastructure.ai.AIProcessor;
+import com.vocalclerk.infrastructure.ai.AIProcessorFactory;
 import com.vocalclerk.infrastructure.repositories.CategoryRepository;
 import com.vocalclerk.infrastructure.repositories.RawInputRepository;
 import com.vocalclerk.infrastructure.repositories.TagRepository;
@@ -32,7 +33,7 @@ public class TaskService implements ITaskService {
     private final TagRepository tagRepository;
     private final RawInputRepository rawInputRepository;
     private final CurrentUser currentUser;
-    private final AIProcessor aiProcessor;
+    private final AIProcessorFactory aiProcessorFactory;
 
     @Autowired
     public TaskService(
@@ -41,13 +42,13 @@ public class TaskService implements ITaskService {
             TagRepository tagRepository,
             RawInputRepository rawInputRepository,
             CurrentUser currentUser,
-            AIProcessor aiProcessor) {
+            AIProcessorFactory aiProcessorFactory) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
         this.tagRepository = tagRepository;
         this.rawInputRepository = rawInputRepository;
         this.currentUser = currentUser;
-        this.aiProcessor = aiProcessor;
+        this.aiProcessorFactory = aiProcessorFactory;
     }
 
     @Override
@@ -236,6 +237,9 @@ public class TaskService implements ITaskService {
         rawInput.setType(InputType.TEXT);
         rawInput.setUser(user);
         RawInput savedRawInput = rawInputRepository.save(rawInput);
+        
+        // Get the appropriate AI processor based on user settings
+        AIProcessor aiProcessor = aiProcessorFactory.getProcessor(user);
         
         // Process with AI
         long startTime = System.currentTimeMillis();
