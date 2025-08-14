@@ -92,39 +92,89 @@ public class QianwenAIProcessor implements AIProcessor {
      * @return The API response
      */
     private String callQianwenAPI(String prompt) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey);
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + apiKey);
+            // 添加DashScope必需的头部
+            headers.set("X-DashScope-SSE", "disable");
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "qwen-max");
-        
-        // Create a message with the prompt
-        Map<String, Object> message = new HashMap<>();
-        message.put("role", "user");
-        message.put("content", prompt);
-        
-        // Add message to messages array
-        List<Map<String, Object>> messages = new ArrayList<>();
-        messages.add(message);
-        
-        // Add messages to request body - this is required by Qianwen API
-        requestBody.put("messages", messages);
-        
-        // Set parameters for better task extraction
-        requestBody.put("temperature", 0.2);
-        requestBody.put("top_p", 0.8);
-        
-        logger.debug("Sending request to Qianwen API: {}", requestBody);
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "qwen-max");
+            
+            // 创建input对象并将messages放入其中
+            Map<String, Object> input = new HashMap<>();
+            
+            // Create a message with the prompt
+            Map<String, Object> message = new HashMap<>();
+            message.put("role", "user");
+            message.put("content", prompt);
+            
+            // Add message to messages array
+            List<Map<String, Object>> messages = new ArrayList<>();
+            messages.add(message);
+            
+            // 将messages放入input对象中
+            input.put("messages", messages);
+            requestBody.put("input", input);
+            
+            // Set parameters for better task extraction
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("temperature", 0.2);
+            parameters.put("top_p", 0.8);
+            parameters.put("enable_search", true); // 启用搜索增强
+            requestBody.put("parameters", parameters);
+            
+            logger.debug("Sending request to Qianwen API: {}", requestBody);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(qianwenUrl, request, Map.class);
-        
-        Map<String, Object> responseBody = response.getBody();
-        Map<String, Object> choices = (Map<String, Object>) ((List<?>) responseBody.get("choices")).get(0);
-        Map<String, Object> responseMessage = (Map<String, Object>) choices.get("message");
-        
-        return (String) responseMessage.get("content");
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(qianwenUrl, request, Map.class);
+            
+            logger.debug("Received response status: {}", response.getStatusCode());
+            
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                logger.error("Error response from Qianwen API. Status: {}, Response: {}", 
+                            response.getStatusCode(), response.getBody());
+                throw new RuntimeException("Qianwen API error: " + response.getStatusCode());
+            }
+            
+            Map<String, Object> responseBody = response.getBody();
+            logger.debug("Response body: {}", responseBody);
+            
+            // 检查响应体是否为空
+            if (responseBody == null) {
+                throw new RuntimeException("Qianwen API returned empty response body");
+            }
+            
+            // 检查是否有错误信息
+            if (responseBody.containsKey("error")) {
+                Map<String, Object> error = (Map<String, Object>) responseBody.get("error");
+                logger.error("Qianwen API error: {}", error);
+                throw new RuntimeException("Qianwen API error: " + error.get("message"));
+            }
+            
+            // 解析正常响应
+            if (responseBody.containsKey("output")) {
+                // 新版API格式
+                Map<String, Object> output = (Map<String, Object>) responseBody.get("output");
+                return (String) output.get("text");
+            } else if (responseBody.containsKey("choices")) {
+                // 旧版API格式
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) responseBody.get("choices");
+                if (!choices.isEmpty()) {
+                    Map<String, Object> choice = choices.get(0);
+                    Map<String, Object> messageResponse = (Map<String, Object>) choice.get("message");
+                    return (String) messageResponse.get("content");
+                }
+            }
+            
+            logger.error("Unexpected response format: {}", responseBody);
+            throw new RuntimeException("Unexpected response format from Qianwen API");
+            
+        } catch (Exception e) {
+            logger.error("Exception in callQianwenAPI: ", e);
+            throw new RuntimeException("Failed to call Qianwen API: " + e.getMessage(), e);
+        }
     }
 
     /**

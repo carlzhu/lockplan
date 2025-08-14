@@ -29,12 +29,14 @@ public class AIProcessorFactory {
      */
     public AIProcessor getProcessor(User user) {
         String aiModel = user.getSettings().getAiModel();
-        
-        if ("qianwen".equalsIgnoreCase(aiModel)) {
-            return qianwenAIProcessor;
-        } else {
-            // Default to Ollama
-            return ollamaAIProcessor;
-        }
+
+        return qianwenAIProcessor;
+
+//        if ("qianwen".equalsIgnoreCase(aiModel)) {
+//            return qianwenAIProcessor;
+//        } else {
+//            // Default to Ollama
+//            return ollamaAIProcessor;
+//        }
     }
 }
