@@ -38,8 +38,6 @@ const TaskInputScreen = ({ navigation }: any) => {
           shouldDuckAndroid: true,
           staysActiveInBackground: false,
           playThroughEarpieceAndroid: false,
-          interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-          interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
         });
         
         console.log('Requesting audio recording permissions...');
@@ -126,8 +124,6 @@ const TaskInputScreen = ({ navigation }: any) => {
         shouldDuckAndroid: true,
         staysActiveInBackground: false,
         playThroughEarpieceAndroid: false,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
       });
       
       // Use more specific recording options for iOS
