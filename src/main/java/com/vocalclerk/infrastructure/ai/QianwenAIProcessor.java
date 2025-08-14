@@ -99,16 +99,23 @@ public class QianwenAIProcessor implements AIProcessor {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "qwen-max");
         
+        // Create a message with the prompt
         Map<String, Object> message = new HashMap<>();
         message.put("role", "user");
         message.put("content", prompt);
         
+        // Add message to messages array
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(message);
         
+        // Add messages to request body - this is required by Qianwen API
         requestBody.put("messages", messages);
+        
+        // Set parameters for better task extraction
         requestBody.put("temperature", 0.2);
         requestBody.put("top_p", 0.8);
+        
+        logger.debug("Sending request to Qianwen API: {}", requestBody);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         ResponseEntity<Map> response = restTemplate.postForEntity(qianwenUrl, request, Map.class);
