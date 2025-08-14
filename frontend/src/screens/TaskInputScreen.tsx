@@ -32,6 +32,8 @@ const TaskInputScreen = ({ navigation }: any) => {
   const [voiceError, setVoiceError] = useState<string>('');
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Set up Voice recognition
     const setupVoiceRecognition = async () => {
       try {
@@ -43,39 +45,54 @@ const TaskInputScreen = ({ navigation }: any) => {
         Voice.onSpeechError = onSpeechError;
         
         // Check if voice recognition is available
-        const isAvailable = await Voice.isAvailable();
-        setIsVoiceAvailable(isAvailable);
-        
-        if (!isAvailable) {
-          console.warn('Voice recognition is not available on this device');
+        try {
+          const isAvailable = await Voice.isAvailable();
+          if (isMounted) {
+            setIsVoiceAvailable(isAvailable);
+          }
+          
+          if (!isAvailable) {
+            console.warn('Voice recognition is not available on this device');
+          }
+        } catch (availabilityError) {
+          console.warn('Error checking voice availability:', availabilityError);
+          if (isMounted) {
+            setIsVoiceAvailable(false);
+          }
         }
         
         // Request microphone permissions
-        console.log('Requesting audio recording permissions...');
-        const { status } = await Audio.requestPermissionsAsync();
-        console.log('Permission status:', status);
-        
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Required', 
-            'Microphone access is required for voice input. Please enable it in your device settings.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { 
-                text: 'Open Settings', 
-                onPress: () => {
-                  // On iOS this will open the settings app
-                  if (Platform.OS === 'ios') {
-                    Linking.openURL('app-settings:');
+        try {
+          console.log('Requesting audio recording permissions...');
+          const { status } = await Audio.requestPermissionsAsync();
+          console.log('Permission status:', status);
+          
+          if (status !== 'granted' && isMounted) {
+            Alert.alert(
+              'Permission Required', 
+              'Microphone access is required for voice input. Please enable it in your device settings.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Open Settings', 
+                  onPress: () => {
+                    // On iOS this will open the settings app
+                    if (Platform.OS === 'ios') {
+                      Linking.openURL('app-settings:');
+                    }
                   }
                 }
-              }
-            ]
-          );
+              ]
+            );
+          }
+        } catch (permissionError) {
+          console.error('Error requesting permissions:', permissionError);
         }
       } catch (error) {
         console.error('Error setting up voice recognition:', error);
-        setVoiceError('Failed to initialize voice recognition');
+        if (isMounted) {
+          setVoiceError('Failed to initialize voice recognition');
+        }
       }
     };
     
@@ -83,15 +100,21 @@ const TaskInputScreen = ({ navigation }: any) => {
     
     // Cleanup on unmount
     return () => {
+      isMounted = false;
+      
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
       
-      Voice.destroy().then(() => {
-        console.log('Voice destroyed');
-      }).catch(e => {
-        console.error('Error destroying Voice instance:', e);
-      });
+      try {
+        Voice.destroy().then(() => {
+          console.log('Voice destroyed');
+        }).catch(e => {
+          console.error('Error destroying Voice instance:', e);
+        });
+      } catch (error) {
+        console.error('Error during cleanup:', error);
+      }
     };
   }, []);
   
@@ -162,11 +185,17 @@ const TaskInputScreen = ({ navigation }: any) => {
       
       // Start voice recognition
       if (isVoiceAvailable) {
-        // Set language based on device locale, defaulting to Chinese
-        const locale = Platform.OS === 'ios' ? 'zh-CN' : 'zh';
-        await Voice.start(locale);
-        console.log('Voice recognition started');
+        try {
+          // Set language based on device locale, defaulting to Chinese
+          const locale = Platform.OS === 'ios' ? 'zh-CN' : 'zh';
+          await Voice.start(locale);
+          console.log('Voice recognition started');
+        } catch (voiceError) {
+          console.error('Error starting voice recognition:', voiceError);
+          throw voiceError;
+        }
       } else {
+        console.warn('Voice recognition not available, falling back to simulation');
         throw new Error('Voice recognition is not available on this device');
       }
     } catch (error) {
@@ -186,8 +215,6 @@ const TaskInputScreen = ({ navigation }: any) => {
         errorMessage += error.message;
       }
       
-      Alert.alert('Voice Recognition Error', errorMessage);
-      
       // Fall back to simulation if voice recognition fails
       simulateVoiceToText();
     }
@@ -205,8 +232,12 @@ const TaskInputScreen = ({ navigation }: any) => {
       
       // Stop voice recognition
       if (isVoiceAvailable) {
-        await Voice.stop();
-        console.log('Voice recognition stopped');
+        try {
+          await Voice.stop();
+          console.log('Voice recognition stopped');
+        } catch (voiceError) {
+          console.error('Error stopping voice recognition:', voiceError);
+        }
       }
       
       // If we didn't get any results, fall back to simulation
@@ -216,10 +247,11 @@ const TaskInputScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('Failed to stop voice recognition:', error);
       setRecordingStatus('');
-      Alert.alert('Error', 'Failed to process voice input');
       
       // Fall back to simulation
       simulateVoiceToText();
+    } finally {
+      setIsRecording(false);
     }
   };
   

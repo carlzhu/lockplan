@@ -32,7 +32,8 @@
       },
       "bundleUrl": "./ios/main.jsbundle",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "VocalClerk needs microphone access to record voice input for creating tasks"
+        "NSMicrophoneUsageDescription": "VocalClerk needs microphone access to record voice input for creating tasks",
+        "NSSpeechRecognitionUsageDescription": "VocalClerk needs speech recognition to convert your voice to text for task creation"
       }
     },
     "android": {
@@ -46,7 +47,8 @@
       "jsEngine": "hermes",
       "permissions": [
         "INTERNET",
-        "RECORD_AUDIO"
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO"
       ],
       "bundleUrl": "./android/app/src/main/assets/index.android.bundle"
     },
