@@ -17,10 +17,10 @@ import { createTaskFromText } from '../services/taskService';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
+import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
 
-// Skip Voice import completely and use simulation only
-// This avoids the NativeEventEmitter error that crashes the app
-const useVoiceRecognition = false;
+// Enable real voice recognition
+const useVoiceRecognition = true;
 
 const TaskInputScreen = ({ navigation }: any) => {
   const [text, setText] = useState('');
@@ -34,6 +34,61 @@ const TaskInputScreen = ({ navigation }: any) => {
 
   useEffect(() => {
     let isMounted = true;
+    
+    // Initialize Voice
+    if (useVoiceRecognition) {
+      Voice.onSpeechStart = () => {
+        console.log('Speech started');
+        setRecordingStatus('正在听取您的语音...');
+      };
+      
+      Voice.onSpeechRecognized = () => {
+        console.log('Speech recognized');
+      };
+      
+      Voice.onSpeechEnd = () => {
+        console.log('Speech ended');
+        setRecordingStatus('处理中...');
+      };
+      
+      Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+        console.log('Speech results:', e);
+        if (e.value && e.value.length > 0) {
+          const recognizedText = e.value[0];
+          setText(recognizedText);
+          setPartialResults(e.value);
+          setRecordingStatus('语音转换完成');
+          
+          // Clear status after a delay
+          setTimeout(() => {
+            setRecordingStatus('');
+          }, 2000);
+        }
+      };
+      
+      Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
+        console.log('Partial results:', e);
+        if (e.value && e.value.length > 0) {
+          setText(e.value[0]);
+          setPartialResults(e.value);
+        }
+      };
+      
+      Voice.onSpeechError = (e: SpeechErrorEvent) => {
+        console.error('Speech error:', e);
+        setRecordingStatus('语音识别出错，请重试');
+        
+        // Fall back to simulation if real recognition fails
+        if (isRecording) {
+          simulateVoiceToText();
+        }
+        
+        // Clear status after a delay
+        setTimeout(() => {
+          setRecordingStatus('');
+        }, 3000);
+      };
+    }
     
     // Request microphone permissions
     const requestPermissions = async () => {
@@ -83,6 +138,15 @@ const TaskInputScreen = ({ navigation }: any) => {
             console.error('Error stopping recording on unmount:', error)
           );
         }
+        
+        // Clean up Voice listeners
+        if (useVoiceRecognition) {
+          Voice.destroy().then(() => {
+            console.log('Voice destroyed');
+          }).catch(e => {
+            console.error('Error destroying Voice instance:', e);
+          });
+        }
       } catch (error) {
         console.error('Error during cleanup:', error);
       }
@@ -103,26 +167,41 @@ const TaskInputScreen = ({ navigation }: any) => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
       
-      // Start actual audio recording (for UI feedback)
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: true,
-          playsInSilentModeIOS: true,
-        });
-        
-        const { recording } = await Audio.Recording.createAsync(
-          Audio.RecordingOptionsPresets.HIGH_QUALITY
-        );
-        
-        setRecording(recording);
-        setRecordingStatus('正在听取您的语音...');
-      } catch (audioError) {
-        console.error('Error starting audio recording:', audioError);
+      if (useVoiceRecognition) {
+        try {
+          // Start voice recognition
+          await Voice.start('zh-CN'); // Use Chinese language for recognition
+          console.log('Voice recognition started');
+        } catch (voiceError) {
+          console.error('Error starting voice recognition:', voiceError);
+          
+          // Fall back to simulation if voice recognition fails
+          simulateVoiceToText();
+        }
+      } else {
+        // Start actual audio recording (for UI feedback)
+        try {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: true,
+            playsInSilentModeIOS: true,
+          });
+          
+          const { recording } = await Audio.Recording.createAsync(
+            Audio.RecordingOptionsPresets.HIGH_QUALITY
+          );
+          
+          setRecording(recording);
+          setRecordingStatus('正在听取您的语音...');
+          
+          // Use simulation mode
+          console.log('Using voice simulation mode');
+        } catch (audioError) {
+          console.error('Error starting audio recording:', audioError);
+          
+          // Fall back to simulation if recording fails
+          simulateVoiceToText();
+        }
       }
-      
-      // We're using simulation mode only
-      console.log('Using voice simulation mode');
-      
     } catch (error) {
       console.error('Failed to start voice recording:', error);
       
@@ -147,22 +226,37 @@ const TaskInputScreen = ({ navigation }: any) => {
       
       setRecordingStatus('处理中...');
       
-      // Stop actual audio recording
-      if (recording) {
+      if (useVoiceRecognition) {
         try {
-          await recording.stopAndUnloadAsync();
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-          });
-          setRecording(null);
-        } catch (audioError) {
-          console.error('Error stopping audio recording:', audioError);
+          // Stop voice recognition
+          await Voice.stop();
+          console.log('Voice recognition stopped');
+          
+          // No need to call simulateVoiceToText here as the Voice.onSpeechResults
+          // event handler will be triggered with the final results
+        } catch (voiceError) {
+          console.error('Error stopping voice recognition:', voiceError);
+          
+          // Fall back to simulation if stopping voice recognition fails
+          simulateVoiceToText();
         }
+      } else {
+        // Stop actual audio recording
+        if (recording) {
+          try {
+            await recording.stopAndUnloadAsync();
+            await Audio.setAudioModeAsync({
+              allowsRecordingIOS: false,
+            });
+            setRecording(null);
+          } catch (audioError) {
+            console.error('Error stopping audio recording:', audioError);
+          }
+        }
+        
+        // Use simulation when real voice recognition is disabled
+        simulateVoiceToText();
       }
-      
-      // Always use simulation for now
-      simulateVoiceToText();
-      
     } catch (error) {
       console.error('Failed to stop voice recording:', error);
       setRecordingStatus('');
@@ -242,6 +336,12 @@ const TaskInputScreen = ({ navigation }: any) => {
       // Make sure any ongoing recording is stopped before submitting
       if (isRecording) {
         try {
+          if (useVoiceRecognition) {
+            await Voice.stop().catch(e => 
+              console.error('Error stopping voice recognition during submit:', e)
+            );
+          }
+          
           if (recording) {
             await recording.stopAndUnloadAsync().catch(e => 
               console.error('Error stopping recording during submit:', e)
