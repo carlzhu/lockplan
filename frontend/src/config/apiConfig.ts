@@ -63,8 +63,16 @@ export const updateApiUrl = async (newUrl: string) => {
 
 // Function to update axios base URL
 export const updateAxiosBaseUrl = (baseUrl: string) => {
+  if (!baseUrl) {
+    console.error('Cannot update axios base URL: URL is empty');
+    return;
+  }
+  
+  // Remove trailing slash if present
+  const normalizedUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  
   // Set the base URL for all axios requests
-  axios.defaults.baseURL = baseUrl;
-  console.log(`API URL updated to: ${baseUrl}`);
+  axios.defaults.baseURL = normalizedUrl;
+  console.log(`API URL updated to: ${normalizedUrl}`);
 };
 

@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
  * Controller for handling user settings
  */
 @RestController
-@RequestMapping("/api/user/settings")
+@RequestMapping("/user/settings")
 public class UserSettingsController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserSettingsController.class);
@@ -29,6 +29,16 @@ public class UserSettingsController {
     public ResponseEntity<Void> checkEndpoint() {
         logger.info("Settings endpoint check");
         return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * Test endpoint to verify API connectivity
+     * This endpoint doesn't require authentication
+     */
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+        logger.info("Settings test endpoint called");
+        return ResponseEntity.ok("Settings API is working");
     }
 
     /**
@@ -55,6 +65,39 @@ public class UserSettingsController {
         logger.info("Getting AI model for user {}", username);
         
         UserSettingsDTO settings = userSettingsService.getAiModel(username);
+        return ResponseEntity.ok(settings);
+    }
+    
+    /**
+     * Update all settings for the current user
+     */
+    @PostMapping
+    public ResponseEntity<UserSettingsDTO> updateSettings(
+            @RequestBody UserSettingsDTO settingsDTO,
+            Authentication authentication) {
+        
+        String username = authentication.getName();
+        logger.info("Updating all settings for user {}: {}", username, settingsDTO);
+        
+        try {
+            UserSettingsDTO updatedSettings = userSettingsService.updateSettings(username, settingsDTO);
+            logger.info("Settings updated successfully for user {}: {}", username, updatedSettings);
+            return ResponseEntity.ok(updatedSettings);
+        } catch (Exception e) {
+            logger.error("Error updating settings for user {}: {}", username, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
+     * Get all settings for the current user
+     */
+    @GetMapping
+    public ResponseEntity<UserSettingsDTO> getSettings(Authentication authentication) {
+        String username = authentication.getName();
+        logger.info("Getting all settings for user {}", username);
+        
+        UserSettingsDTO settings = userSettingsService.getSettings(username);
         return ResponseEntity.ok(settings);
     }
 }

@@ -10,15 +10,29 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
+import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { API_URL, updateApiUrl } from '../config/apiConfig';
-import { getAIModel, setAIModel, AIModel } from '../services/settingsService';
+import { 
+  getAIModel, 
+  setAIModel, 
+  AIModel, 
+  getSettings, 
+  updateSettings, 
+  UserSettings,
+  testSettingsApi
+} from '../services/settingsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SettingsScreen = ({ navigation }: any) => {
   const { user, logout } = useContext(AuthContext);
   const [apiUrl, setApiUrl] = useState(API_URL);
   const [aiModel, setAiModel] = useState<AIModel>('qianwen');
+  const [darkMode, setDarkMode] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [biometricAuthEnabled, setBiometricAuthEnabled] = useState(false);
+  const [dataBackupEnabled, setDataBackupEnabled] = useState(true);
+  const [reminderLeadTime, setReminderLeadTime] = useState(15);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -28,15 +42,33 @@ const SettingsScreen = ({ navigation }: any) => {
       try {
         setLoading(true);
         const storedApiUrl = await AsyncStorage.getItem('apiUrl');
-        const currentAiModel = await getAIModel();
         
         if (storedApiUrl) {
           setApiUrl(storedApiUrl);
         }
         
-        setAiModel(currentAiModel);
-      } catch (error) {
-        console.error('Error loading settings:', error);
+        // Load all settings from API
+        console.log('Loading settings from API...');
+        const userSettings = await getSettings();
+        console.log('Settings loaded:', userSettings);
+        
+        setAiModel(userSettings.aiModel);
+        setDarkMode(userSettings.darkMode);
+        setNotificationsEnabled(userSettings.notificationsEnabled);
+        setBiometricAuthEnabled(userSettings.biometricAuthEnabled);
+        setDataBackupEnabled(userSettings.dataBackupEnabled);
+        setReminderLeadTime(userSettings.reminderLeadTime);
+      } catch (error: any) {
+        console.error('Error loading settings:', error.message);
+        if (error.response) {
+          console.error('Response status:', error.response.status);
+          console.error('Response data:', JSON.stringify(error.response.data));
+        }
+        
+        Alert.alert(
+          'Error Loading Settings',
+          'Could not load settings from server. Using default settings.'
+        );
       } finally {
         setLoading(false);
       }
@@ -72,20 +104,40 @@ const SettingsScreen = ({ navigation }: any) => {
     }
   };
 
-  // Save AI model settings
-  const saveAiModelSettings = async () => {
+  // Save all settings
+  const saveAllSettings = async () => {
+    setSaving(true);
+    
     try {
-      setSaving(true);
-      const success = await setAIModel(aiModel);
+      // Create settings object
+      const settings: UserSettings = {
+        aiModel,
+        darkMode,
+        notificationsEnabled,
+        preferredLanguage: 'en', // Currently hardcoded
+        biometricAuthEnabled,
+        dataBackupEnabled,
+        reminderLeadTime
+      };
+      
+      console.log('Saving settings to API:', settings);
+      
+      // Update all settings via API
+      const success = await updateSettings(settings);
       
       if (success) {
-        Alert.alert('Success', 'AI model settings saved successfully');
+        Alert.alert('Settings Saved', 'Your settings have been saved successfully.');
       } else {
-        Alert.alert('Error', 'Failed to save AI model settings');
+        Alert.alert('Error', 'Failed to save settings to the server.');
       }
-    } catch (error) {
-      console.error('Error saving AI model settings:', error);
-      Alert.alert('Error', 'Failed to save AI model settings');
+    } catch (error: any) {
+      console.error('Error saving settings:', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', JSON.stringify(error.response.data));
+      }
+      
+      Alert.alert('Error', 'Failed to save settings: ' + error.message);
     } finally {
       setSaving(false);
     }
@@ -140,6 +192,24 @@ const SettingsScreen = ({ navigation }: any) => {
             <Text style={styles.buttonText}>Save API Settings</Text>
           )}
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.button, { marginTop: 8, backgroundColor: '#4CAF50' }]}
+          onPress={async () => {
+            try {
+              const result = await testSettingsApi();
+              if (result) {
+                Alert.alert('Success', 'API connection test successful');
+              } else {
+                Alert.alert('Error', 'API connection test failed');
+              }
+            } catch (error: any) {
+              Alert.alert('Error', 'API connection test failed: ' + error.message);
+            }
+          }}
+        >
+          <Text style={styles.buttonText}>Test API Connection</Text>
+        </TouchableOpacity>
       </View>
       
       <View style={styles.section}>
@@ -177,16 +247,63 @@ const SettingsScreen = ({ navigation }: any) => {
             <Text style={styles.checkmark}>✓</Text>
           )}
         </TouchableOpacity>
+      </View>
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>App Settings</Text>
+        <Text style={styles.sectionSubtitle}>Configure application preferences</Text>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Dark Mode</Text>
+          <Switch
+            value={darkMode}
+            onValueChange={setDarkMode}
+          />
+        </View>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Enable Notifications</Text>
+          <Switch
+            value={notificationsEnabled}
+            onValueChange={setNotificationsEnabled}
+          />
+        </View>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Biometric Authentication</Text>
+          <Switch
+            value={biometricAuthEnabled}
+            onValueChange={setBiometricAuthEnabled}
+          />
+        </View>
+        
+        <View style={styles.settingRow}>
+          <Text style={styles.settingLabel}>Data Backup</Text>
+          <Switch
+            value={dataBackupEnabled}
+            onValueChange={setDataBackupEnabled}
+          />
+        </View>
+        
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Reminder Lead Time (minutes)</Text>
+          <TextInput
+            style={styles.input}
+            value={reminderLeadTime.toString()}
+            onChangeText={(value) => setReminderLeadTime(parseInt(value) || 15)}
+            keyboardType="numeric"
+          />
+        </View>
         
         <TouchableOpacity
           style={styles.button}
-          onPress={saveAiModelSettings}
+          onPress={saveAllSettings}
           disabled={saving}
         >
           {saving ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.buttonText}>Save AI Model Settings</Text>
+            <Text style={styles.buttonText}>Save All Settings</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -315,6 +432,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#007aff',
     marginLeft: 8,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5ea',
+  },
+  settingLabel: {
+    fontSize: 16,
+    color: '#1c1c1e',
   },
   userInfo: {
     marginBottom: 16,

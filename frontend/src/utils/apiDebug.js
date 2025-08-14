@@ -4,6 +4,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { API_URL } from '../config/apiConfig';
 
 // Test the echo endpoint to diagnose request issues
 export const testEchoEndpoint = async () => {
@@ -38,7 +39,7 @@ export const testEchoEndpoint = async () => {
     for (const testCase of testCases) {
       console.log(`Testing with priority: ${testCase.priority}`);
       try {
-        const response = await api.post('http://192.168.221.151:8080/test/echo', testCase);
+        const response = await api.post(`${API_URL}/test/echo`, testCase);
         console.log(`Test case ${testCase.title} result:`, response.data);
       } catch (error) {
         console.error(`Error with test case ${testCase.title}:`, error.message);
@@ -61,13 +62,13 @@ export const testEchoEndpoint = async () => {
     
     // Get a task ID to test with
     try {
-      const tasksResponse = await api.get('http://192.168.221.151:8080/api/tasks');
+      const tasksResponse = await api.get(`${API_URL}/tasks`);
       if (tasksResponse.data && tasksResponse.data.length > 0) {
         const taskId = tasksResponse.data[0].id;
         console.log('Using task ID for update test:', taskId);
         
         try {
-          const updateResponse = await api.put(`http://192.168.221.151:8080/api/tasks/${taskId}`, taskUpdateTest);
+          const updateResponse = await api.put(`${API_URL}/tasks/${taskId}`, taskUpdateTest);
           console.log('Task update successful:', updateResponse.status);
           console.log('Updated task:', updateResponse.data);
           Alert.alert('Success', 'Task update test completed successfully!');
@@ -104,7 +105,7 @@ export const testPriorityEnum = async () => {
     
     for (const priority of priorities) {
       try {
-        const response = await axios.get(`http://192.168.221.151:8080/test/priority/${priority}`);
+        const response = await axios.get(`${API_URL}/test/priority/${priority}`);
         console.log(`Priority ${priority} test result:`, response.data);
       } catch (error) {
         console.error(`Error with priority ${priority}:`, error.message);

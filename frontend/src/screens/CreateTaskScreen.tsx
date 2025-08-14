@@ -123,10 +123,21 @@ const CreateTaskScreen = ({ navigation }: any) => {
       };
 
       console.log('Creating task with priority:', priority);
-
       console.log('Creating task with data:', JSON.stringify(newTask));
       
+      // Import API_URL to log the full endpoint
+      const { API_URL } = require('../config/apiConfig');
+      console.log('API URL for task creation:', `${API_URL}/tasks`);
+      
       try {
+        // Get token to verify authentication
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const token = await AsyncStorage.getItem('token');
+        console.log('Authentication token available:', !!token);
+        if (token) {
+          console.log('Token prefix:', token.substring(0, 10) + '...');
+        }
+        
         const result = await createTask(newTask);
         console.log('Task created successfully:', result);
         
@@ -145,11 +156,13 @@ const CreateTaskScreen = ({ navigation }: any) => {
         
         // Check if there's a response with error details
         if (apiError.response) {
-          console.error('Error response:', apiError.response.status, apiError.response.data);
+          console.error('Error response status:', apiError.response.status);
+          console.error('Error response data:', JSON.stringify(apiError.response.data));
+          console.error('Error response headers:', JSON.stringify(apiError.response.headers));
           Alert.alert('Error', `Failed to create task: ${apiError.response.status} - ${JSON.stringify(apiError.response.data)}`);
         } else if (apiError.request) {
           // Request was made but no response received
-          console.error('No response received:', apiError.request);
+          console.error('No response received. Request details:', JSON.stringify(apiError.request));
           Alert.alert('Error', 'No response from server. Please check your connection.');
         } else {
           // Something else caused the error

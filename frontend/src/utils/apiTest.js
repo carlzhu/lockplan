@@ -4,6 +4,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { API_URL } from '../config/apiConfig';
 
 // Test the authentication and task API
 export const testTaskApi = async () => {
@@ -26,17 +27,17 @@ export const testTaskApi = async () => {
       }
     });
     
-    // Step 3: Test GET /api/tasks
-    console.log('Testing GET /api/tasks...');
+    // Step 3: Test GET /tasks
+    console.log('Testing GET /tasks...');
     try {
-      const tasksResponse = await api.get('http://192.168.221.151:8080/api/tasks');
-      console.log('GET /api/tasks successful:', tasksResponse.status);
+      const tasksResponse = await api.get(`${API_URL}/tasks`);
+      console.log('GET /tasks successful:', tasksResponse.status);
       console.log('Tasks count:', tasksResponse.data.length);
       
       // If we have tasks, test updating one
       if (tasksResponse.data.length > 0) {
         const taskToUpdate = tasksResponse.data[0];
-        console.log('Testing PUT /api/tasks/{id} with task ID:', taskToUpdate.id);
+        console.log('Testing PUT /tasks/{id} with task ID:', taskToUpdate.id);
         
         // Create update payload
         const updatePayload = {
@@ -51,8 +52,8 @@ export const testTaskApi = async () => {
         
         // Test the update
         try {
-          const updateResponse = await api.put(`http://192.168.221.151:8080/api/tasks/${taskToUpdate.id}`, updatePayload);
-          console.log('PUT /api/tasks/{id} successful:', updateResponse.status);
+          const updateResponse = await api.put(`${API_URL}/tasks/${taskToUpdate.id}`, updatePayload);
+          console.log('PUT /tasks/{id} successful:', updateResponse.status);
           Alert.alert('Success', 'API test completed successfully!');
         } catch (updateError) {
           console.error('Error updating task:', updateError);

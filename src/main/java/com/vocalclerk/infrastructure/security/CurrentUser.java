@@ -33,8 +33,19 @@ public class CurrentUser {
         }
 
         String username = authentication.getName();
-        return userRepository.findByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalStateException("User not found: " + username));
+        
+        // Ensure user settings are properly linked
+        if (user.getSettings() != null) {
+            // Make sure the username in settings matches the user's username
+            if (!username.equals(user.getSettings().getUsername())) {
+                user.getSettings().setUsername(username);
+                userRepository.save(user);
+            }
+        }
+        
+        return user;
     }
 
     /**

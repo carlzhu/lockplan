@@ -23,4 +23,21 @@ public interface UserSettingsService {
      * @return The current settings
      */
     UserSettingsDTO getAiModel(String username);
+    
+    /**
+     * Update all user settings
+     * 
+     * @param username The username of the user
+     * @param settingsDTO The settings to update
+     * @return The updated settings
+     */
+    UserSettingsDTO updateSettings(String username, UserSettingsDTO settingsDTO);
+    
+    /**
+     * Get all user settings
+     * 
+     * @param username The username of the user
+     * @return The current settings
+     */
+    UserSettingsDTO getSettings(String username);
 }

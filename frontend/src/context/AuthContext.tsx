@@ -107,10 +107,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       updateAxiosBaseUrl(API_URL);
       
       console.log('Attempting login with username:', email);
-      console.log('Using API URL:', axios.defaults.baseURL);
+      console.log('Using API URL:', API_URL);
       
       // Add timeout to prevent hanging on network issues
-      const response = await axios.post('/api/auth/login', {
+      const response = await axios.post(`${API_URL}/auth/login`, {
         username: email, // Changed from 'email' to 'username' to match backend expectations
         password,
       }, {
@@ -188,7 +188,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update axios base URL before making the request
       updateAxiosBaseUrl(API_URL);
       
-      await axios.post('/api/auth/register', {
+      await axios.post(`${API_URL}/auth/register`, {
         name,
         email,
         password,
