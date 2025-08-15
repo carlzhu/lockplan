@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "VocalClerk",
-    "slug": "VocalClerk",
+    "name": "AI Voice Notes",
+    "slug": "AIVoiceNotes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +24,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vocalclerk.app",
+      "bundleIdentifier": "com.aivoicenotes.app",
       "buildNumber": "1",
       "jsEngine": "hermes",
       "config": {
@@ -32,8 +32,8 @@
       },
       "bundleUrl": "./ios/main.jsbundle",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "VocalClerk needs microphone access to record voice input for creating tasks",
-        "NSSpeechRecognitionUsageDescription": "VocalClerk needs speech recognition to convert your voice to text for task creation"
+        "NSMicrophoneUsageDescription": "AI Voice Notes needs microphone access to record voice input for creating tasks",
+        "NSSpeechRecognitionUsageDescription": "AI Voice Notes needs speech recognition to convert your voice to text for task creation"
       }
     },
     "android": {
@@ -41,7 +41,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.vocalclerk.app",
+      "package": "com.aivoicenotes.app",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "jsEngine": "hermes",

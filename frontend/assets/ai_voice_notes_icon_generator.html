@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Notes Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3a80d2;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI Voice Notes Icon Generator</h1>
+    <div class="controls">
+        <button id="generateBtn">Generate Icon</button>
+        <button id="downloadBtn">Download Icon</button>
+    </div>
+    <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('iconCanvas');
+            const ctx = canvas.getContext('2d');
+            const generateBtn = document.getElementById('generateBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            // Generate the icon
+            function generateIcon() {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Set background gradient
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#4a90e2');  // Blue
+                gradient.addColorStop(1, '#34c759');  // Green
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw rounded rectangle for notepad
+                ctx.fillStyle = '#ffffff';
+                roundRect(ctx, canvas.width * 0.15, canvas.height * 0.15, canvas.width * 0.7, canvas.height * 0.7, 40, true);
+                
+                // Draw notepad lines
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.lineWidth = 5;
+                for (let i = 0; i < 6; i++) {
+                    const y = canvas.height * 0.25 + i * (canvas.height * 0.5 / 6);
+                    ctx.beginPath();
+                    ctx.moveTo(canvas.width * 0.2, y);
+                    ctx.lineTo(canvas.width * 0.8, y);
+                    ctx.stroke();
+                }
+                
+                // Draw microphone
+                drawMicrophone(ctx, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.25);
+                
+                // Draw AI circuit pattern overlay
+                drawAICircuitPattern(ctx, canvas.width, canvas.height);
+                
+                // Draw glowing effect around the microphone
+                drawGlowingEffect(ctx, canvas.width * 0.5, canvas.height * 0.5, canvas.width * 0.3);
+            }
+            
+            // Helper function to draw rounded rectangles
+            function roundRect(ctx, x, y, width, height, radius, fill) {
+                ctx.beginPath();
+                ctx.moveTo(x + radius, y);
+                ctx.lineTo(x + width - radius, y);
+                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctx.lineTo(x + width, y + height - radius);
+                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctx.lineTo(x + radius, y + height);
+                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctx.lineTo(x, y + radius);
+                ctx.quadraticCurveTo(x, y, x + radius, y);
+                ctx.closePath();
+                if (fill) {
+                    ctx.fill();
+                } else {
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw microphone
+            function drawMicrophone(ctx, centerX, centerY, size) {
+                const micWidth = size * 0.4;
+                const micHeight = size * 0.6;
+                const baseWidth = size * 0.6;
+                const baseHeight = size * 0.15;
+                
+                ctx.fillStyle = '#4a90e2';
+                
+                // Microphone body
+                roundRect(ctx, centerX - micWidth/2, centerY - micHeight/2, micWidth, micHeight, micWidth/2, true);
+                
+                // Microphone stand
+                ctx.fillRect(centerX - 5, centerY + micHeight/2 - 5, 10, size * 0.2);
+                
+                // Microphone base
+                roundRect(ctx, centerX - baseWidth/2, centerY + micHeight/2 + size * 0.2 - 5, baseWidth, baseHeight, 10, true);
+                
+                // Sound waves
+                ctx.strokeStyle = '#34c759';
+                ctx.lineWidth = 8;
+                
+                // Draw sound waves as arcs
+                for (let i = 1; i <= 3; i++) {
+                    const radius = size * 0.2 * i;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY - micHeight * 0.2, radius, Math.PI * 0.8, Math.PI * 0.2, true);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw AI circuit pattern
+            function drawAICircuitPattern(ctx, width, height) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 3;
+                
+                // Draw circuit lines
+                for (let i = 0; i < 8; i++) {
+                    const startX = Math.random() * width;
+                    const startY = Math.random() * height;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    
+                    // Create a path with 3-5 segments
+                    let currentX = startX;
+                    let currentY = startY;
+                    const segments = 3 + Math.floor(Math.random() * 3);
+                    
+                    for (let j = 0; j < segments; j++) {
+                        // Decide if this segment is horizontal or vertical
+                        if (Math.random() > 0.5) {
+                            currentX = currentX + (Math.random() * 0.3 - 0.15) * width;
+                        } else {
+                            currentY = currentY + (Math.random() * 0.3 - 0.15) * height;
+                        }
+                        
+                        // Add a 90-degree turn
+                        ctx.lineTo(currentX, currentY);
+                    }
+                    
+                    ctx.stroke();
+                    
+                    // Add circuit nodes at the end points
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(startX, startY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(currentX, currentY, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Draw glowing effect
+            function drawGlowingEffect(ctx, centerX, centerY, size) {
+                const gradient = ctx.createRadialGradient(
+                    centerX, centerY, size * 0.2,
+                    centerX, centerY, size * 0.5
+                );
+                gradient.addColorStop(0, 'rgba(52, 199, 89, 0.3)');
+                gradient.addColorStop(1, 'rgba(52, 199, 89, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, size * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Download the icon
+            function downloadIcon() {
+                const link = document.createElement('a');
+                link.download = 'ai_voice_notes_icon.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+            
+            // Event listeners
+            generateBtn.addEventListener('click', generateIcon);
+            downloadBtn.addEventListener('click', downloadIcon);
+            
+            // Generate icon on load
+            generateIcon();
+        });
+    </script>
+</body>
+</html>

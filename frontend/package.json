@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@bam.tech/react-native-make": "^3.0.3",
     "@react-native-community/cli": "latest",
     "@types/react": "~19.0.10",
     "canvas": "^3.1.2",
