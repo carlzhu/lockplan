@@ -46,6 +46,7 @@ const HomeScreen = ({ navigation }: any) => {
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+  const [lastTap, setLastTap] = useState<number | null>(null);
   
   const { user, logout } = useContext(AuthContext);
   const isInitialMount = useRef(true);
@@ -225,6 +226,18 @@ const HomeScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleDoubleTap = (taskId: string | number) => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    if (lastTap && (now - lastTap) < DOUBLE_PRESS_DELAY) {
+      // Double tap detected
+      navigation.navigate('EditTask', { taskId });
+      setLastTap(null); // Reset to avoid triggering on triple tap
+    } else {
+      setLastTap(now);
+    }
+  };
+
   const renderItem = ({ item }: { item: Task }) => {
     // Format due date in consistent format: yyyy-MM-dd HH:mm:ss
     let formattedDueDate = 'No due date';
@@ -245,11 +258,15 @@ const HomeScreen = ({ navigation }: any) => {
                         (item.dueDate && new Date(item.dueDate) < new Date() ? '#ff3b30' : '#007aff');
     
     return (
-      <View style={[
-        styles.taskItem, 
-        item.completed && styles.completedTask,
-        { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || 'low') }
-      ]}>
+      <TouchableOpacity 
+        style={[
+          styles.taskItem, 
+          item.completed && styles.completedTask,
+          { borderLeftWidth: 4, borderLeftColor: getPriorityColor(item.priority || 'low') }
+        ]}
+        onResponderGrant={() => handleDoubleTap(item.id!)}
+        onPress={() => handleDoubleTap(item.id!)}
+      >
         <View style={styles.statusIndicator}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         </View>
@@ -303,11 +320,11 @@ const HomeScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={[styles.actionButton, styles.editButton]}
-            onPress={() => navigation.navigate('EditTask', { taskId: item.id })}
-          >
-            <Text style={styles.actionButtonText}>✎</Text>
-          </TouchableOpacity>
+              style={[styles.actionButton, styles.editButton]}
+              onPress={() => navigation.navigate('EditTask', { taskId: item.id })}
+            >
+              <Text style={styles.actionButtonText}>✎</Text>
+            </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.deleteButton]}
             onPress={() => handleDeleteTask(item.id!)}
@@ -315,7 +332,7 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.actionButtonText}>✕</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
@@ -524,7 +541,8 @@ const HomeScreen = ({ navigation }: any) => {
           item.completed && styles.completedTask,
           { borderTopColor: getPriorityColor(item.priority || 'low'), borderTopWidth: 4 }
         ]}
-        onPress={() => navigation.navigate('EditTask', { taskId: item.id })}
+        onResponderGrant={() => handleDoubleTap(item.id!)}
+        onPress={() => handleDoubleTap(item.id!)}
       >
         <View>
           <View style={styles.gridItemHeader}>
