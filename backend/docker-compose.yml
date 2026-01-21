@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Server=mysql;Port=3306;Database=vocalclerk;User=root;Password=password;
+      - Jwt__Secret=vocalClerkSecretKey2023ForSecureTokenGenerationAndValidationWithExtraSecurityBits
+      - Jwt__Issuer=VocalClerkApi
+      - Jwt__Audience=VocalClerkClient
+    depends_on:
+      - mysql
+    networks:
+      - vocalclerk-network
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=vocalclerk
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - vocalclerk-network
+
+volumes:
+  mysql-data:
+
+networks:
+  vocalclerk-network:
+    driver: bridge

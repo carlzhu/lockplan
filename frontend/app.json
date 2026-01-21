@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "AI Voice Notes",
+    "slug": "AIVoiceNotes",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/your-project-id"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vocalclerk.app",
+      "buildNumber": "1",
+      "jsEngine": "hermes",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "bundleUrl": "./ios/main.jsbundle",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "AI Voice Notes needs microphone access to record voice input for creating tasks",
+        "NSSpeechRecognitionUsageDescription": "AI Voice Notes needs speech recognition to convert your voice to text for task creation",
+        "NSUserNotificationsUsageDescription": "VocalClerk needs notification permission to remind you about your tasks and events"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.vocalclerk.app",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "jsEngine": "hermes",
+      "permissions": [
+        "INTERNET",
+        "RECORD_AUDIO",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE"
+      ],
+      "bundleUrl": "./android/app/src/main/assets/index.android.bundle",
+      "useNextNotificationsApi": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    },
+    "plugins": []
+  }
+}

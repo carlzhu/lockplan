@@ -1,0 +1,170 @@
+# ========================================
+# VocalClerk 项目统一 .gitignore
+# ========================================
+
+# ========================================
+# 操作系统相关
+# ========================================
+# macOS
+.DS_Store
+*.pem
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ========================================
+# IDE 和编辑器
+# ========================================
+# IntelliJ IDEA / Rider
+.idea/
+*.iws
+*.iml
+*.ipr
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# ========================================
+# 前端 (React Native / Expo)
+# ========================================
+# 依赖
+frontend/node_modules/
+node_modules/
+
+# Expo
+frontend/.expo/
+frontend/dist/
+frontend/web-build/
+frontend/expo-env.d.ts
+
+# 原生文件（可重新生成）
+frontend/ios/
+frontend/android/
+
+# Metro
+frontend/.metro-health-check*
+
+# 构建产物
+frontend/build/
+frontend/coverage/
+
+# 调试日志
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# TypeScript
+*.tsbuildinfo
+
+# 环境变量
+.env*.local
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Native 相关
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Bundle 文件
+*.jsbundle
+
+# ========================================
+# 后端 (.NET 8)
+# ========================================
+# 构建结果（匹配所有子目录）
+backend/**/[Dd]ebug/
+backend/**/[Dd]ebugPublic/
+backend/**/[Rr]elease/
+backend/**/[Rr]eleases/
+backend/**/x64/
+backend/**/x86/
+backend/**/build/
+backend/**/bld/
+backend/**/[Bb]in/
+backend/**/[Oo]bj/
+backend/**/[Ll]og/
+
+# .NET Core
+backend/project.lock.json
+backend/project.fragment.lock.json
+backend/artifacts/
+
+# NuGet Packages
+*.nupkg
+*.snupkg
+backend/**/packages/*
+
+# Entity Framework / 数据库
+*.mdf
+*.ldf
+*.ndf
+*.db
+*.db-shm
+*.db-wal
+
+# 发布
+backend/publish/
+
+# ========================================
+# Java / Maven (旧后端，如果还有)
+# ========================================
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ========================================
+# 日志文件
+# ========================================
+*.log
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+# ========================================
+# 临时文件
+# ========================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ========================================
+# 文档生成（如果有）
+# ========================================
+# 保留 docs/ 目录下的 .md 文件
+# 但忽略自动生成的文档
