@@ -110,6 +110,9 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
+app.UseCors("AllowAll");
+
+// 在开发环境启用 Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -119,8 +122,6 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = "swagger";
     });
 }
-
-app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
