@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "AI Voice Notes",
-    "slug": "AIVoiceNotes",
+    "name": "DoNow",
+    "slug": "DoNow",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,8 +32,8 @@
       },
       "bundleUrl": "./ios/main.jsbundle",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "AI Voice Notes needs microphone access to record voice input for creating tasks",
-        "NSSpeechRecognitionUsageDescription": "AI Voice Notes needs speech recognition to convert your voice to text for task creation",
+        "NSMicrophoneUsageDescription": "DoNow needs microphone access to record voice input for creating tasks",
+        "NSSpeechRecognitionUsageDescription": "DoNow needs speech recognition to convert your voice to text for task creation",
         "NSUserNotificationsUsageDescription": "DoNow needs notification permission to remind you about your tasks and events"
       }
     },

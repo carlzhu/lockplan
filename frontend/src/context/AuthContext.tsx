@@ -106,12 +106,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update axios base URL before making the request
       updateAxiosBaseUrl(API_URL);
       
-      console.log('Attempting login with username:', email);
-      console.log('Using API URL:', API_URL);
+      console.log('=== Login Attempt ===');
+      console.log('Username/Email:', email);
+      console.log('API_URL:', API_URL);
+      console.log('Axios baseURL:', axios.defaults.baseURL);
       
-      // Add timeout to prevent hanging on network issues
-      const response = await axios.post(`${API_URL}/auth/login`, {
-        username: email, // Changed from 'email' to 'username' to match backend expectations
+      // Use relative path since axios.defaults.baseURL already includes /api/donow
+      const response = await axios.post('/auth/login', {
+        username: email, // Backend accepts username or email in the username field
         password,
       }, {
         timeout: 10000, // 10 second timeout
@@ -121,7 +123,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       });
 
-      console.log('Login response received:', response.status);
+      console.log('Login response status:', response.status);
+      console.log('Login response data keys:', Object.keys(response.data || {}));
       
       // Check if we have the expected response structure
       if (!response.data || !response.data.accessToken) {
@@ -134,7 +137,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       const { accessToken, user } = response.data;
-      console.log('Token received, user data:', user ? 'exists' : 'missing');
+      console.log('Token received (first 20 chars):', accessToken.substring(0, 20) + '...');
+      console.log('User data:', user ? JSON.stringify(user) : 'missing');
       
       // Store token and user data
       await AsyncStorage.setItem('token', accessToken);
@@ -142,35 +146,62 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // Set authorization header for all future requests
       axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-      console.log('Authorization header set after login');
+      console.log('Authorization header set');
       
       setUser(user);
       setIsAuthenticated(true);
-      console.log('Authentication state updated, user is now authenticated');
+      console.log('=== Login Successful ===');
     } catch (error: any) {
-      console.error('Login failed', error.message);
+      console.error('=== Login Failed ===');
+      console.error('Error message:', error.message);
       
       let errorMessage = 'Invalid credentials. Please try again.';
+      let errorDetails = '';
       
       if (error.code === 'ECONNABORTED') {
-        errorMessage = 'Connection timed out. Please check your network and API settings.';
-      } else if (error.message.includes('Network Error')) {
-        errorMessage = 'Network error. Please check your internet connection and API settings.';
+        errorMessage = 'Connection timed out';
+        errorDetails = 'Please check your network and API settings.';
+      } else if (error.message.includes('Network Error') || error.code === 'ERR_NETWORK') {
+        errorMessage = 'Network error';
+        errorDetails = `Cannot connect to ${API_URL}. Please check:\n1. API URL is correct\n2. Server is running\n3. Network connection is working`;
       } else if (error.response) {
         console.error('Response status:', error.response.status);
-        console.error('Response data:', error.response.data);
+        console.error('Response data:', JSON.stringify(error.response.data));
         
         // Handle specific status codes
-        if (error.response.status === 418) {
-          errorMessage = 'Server configuration error. Please check your API settings.';
-        } else if (error.response.status === 401) {
-          errorMessage = 'Invalid username or password.';
+        if (error.response.status === 401) {
+          errorMessage = 'Invalid username or password';
+          errorDetails = 'Please check your credentials and try again.';
+        } else if (error.response.status === 403) {
+          errorMessage = 'Account locked';
+          errorDetails = error.response.data?.message || 'Your account has been locked. Please try again later.';
+        } else if (error.response.status === 404) {
+          errorMessage = 'API endpoint not found';
+          errorDetails = `The login endpoint was not found. Please check your API configuration.\n\nExpected: ${axios.defaults.baseURL}/auth/login`;
         } else if (error.response.status >= 500) {
-          errorMessage = 'Server error. Please try again later.';
+          errorMessage = 'Server error';
+          errorDetails = 'The server encountered an error. Please try again later.';
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
         }
+      } else if (error.request) {
+        console.error('No response received');
+        console.error('Request config:', {
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+          method: error.config?.method
+        });
+        errorMessage = 'No response from server';
+        errorDetails = `Cannot reach ${API_URL}. Please verify the API URL in settings.`;
       }
       
-      Alert.alert('Login Failed', errorMessage);
+      // Show detailed error message
+      if (errorDetails) {
+        Alert.alert(errorMessage, errorDetails);
+      } else {
+        Alert.alert('Login Failed', errorMessage);
+      }
+      
       throw error;
     } finally {
       setLoading(false);
@@ -190,9 +221,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       console.log('Attempting registration with username:', name);
       console.log('Using API URL:', API_URL);
+      console.log('Axios baseURL:', axios.defaults.baseURL);
       
-      // .NET backend expects: username, email, password
-      await axios.post(`${API_URL}/auth/register`, {
+      // Use relative path since axios.defaults.baseURL already includes /api/donow
+      await axios.post('/auth/register', {
         username: name,  // Changed from 'name' to 'username' to match .NET backend
         email,
         password,

@@ -113,7 +113,7 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 
 // 在开发环境启用 Swagger
-if (app.Environment.IsDevelopment())
+//if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>

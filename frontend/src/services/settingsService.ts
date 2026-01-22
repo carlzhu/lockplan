@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { API_URL } from '../config/apiConfig';
 
 // AI model types
 export type AIModel = 'qianwen' | 'ollama';
@@ -30,6 +29,17 @@ export const DEFAULT_SETTINGS: UserSettings = {
   reminderLeadTime: 15
 };
 
+// Helper function to get the current API URL
+const getCurrentApiUrl = async (): Promise<string> => {
+  try {
+    const storedApiUrl = await AsyncStorage.getItem('apiUrl');
+    return storedApiUrl || 'http://127.0.0.1:5000';
+  } catch (error) {
+    console.error('Error getting API URL:', error);
+    return 'http://127.0.0.1:5000';
+  }
+};
+
 // Function to get the current AI model
 export const getAIModel = async (): Promise<AIModel> => {
   try {
@@ -51,25 +61,15 @@ export const setAIModel = async (model: AIModel): Promise<boolean> => {
       return false;
     }
     
-    // Use the API_URL constant
-    const apiUrl = API_URL;
+    // Get the current API URL from storage
+    const apiUrl = await getCurrentApiUrl();
     if (!apiUrl) {
       console.error('API URL not configured');
       return false;
     }
     
-    // Create a new axios instance with the correct baseURL
-    const api = axios.create({
-      baseURL: apiUrl,
-      timeout: 5000,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    // Update the AI model via API
-    const response = await api.post('/user/settings/ai-model', { aiModel: model });
+    // Update the AI model via API using axios defaults (which should be updated)
+    const response = await axios.post('/user/settings/ai-model', { aiModel: model });
     console.log('AI model updated successfully via API:', response.status);
     
     // Save to local storage as cache for offline access
@@ -95,23 +95,15 @@ export const getSettings = async (): Promise<UserSettings> => {
       return DEFAULT_SETTINGS;
     }
     
-    // Use the API_URL constant
-    const apiUrl = API_URL;
-    if (!apiUrl) {
-      console.warn('API URL not configured, using default settings');
-      return DEFAULT_SETTINGS;
-    }
-    
-    console.log('Fetching settings from API:', `${apiUrl}/user/settings`);
+    // Use axios defaults which should be updated by updateApiUrl
+    console.log('Fetching settings from API using axios defaults');
+    console.log('Axios baseURL:', axios.defaults.baseURL);
     console.log('Using token (first 10 chars):', token.substring(0, 10) + '...');
     
-    // Make direct API call with full URL
-    const response = await axios({
-      method: 'get',
-      url: `${apiUrl}/user/settings`,
+    // Make API call using axios defaults
+    const response = await axios.get('/user/settings', {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
       },
       timeout: 10000
     });
@@ -130,7 +122,9 @@ export const getSettings = async (): Promise<UserSettings> => {
       console.error('Response status:', error.response.status);
       console.error('Response data:', JSON.stringify(error.response.data));
     } else if (error.request) {
-      console.error('No response received, request details:', error.request._url || 'No URL available');
+      console.error('No response received');
+      console.error('Request URL:', error.config?.url);
+      console.error('Request baseURL:', error.config?.baseURL);
     }
     
     // Try to get from local storage as fallback for offline access
@@ -159,25 +153,14 @@ export const updateSettings = async (settings: UserSettings): Promise<boolean> =
       return false;
     }
     
-    // Get the API URL
-    const apiUrl = API_URL;
-    if (!apiUrl) {
-      console.error('API URL not configured');
-      return false;
-    }
-    
     console.log('Updating settings via API');
     console.log('Settings data:', JSON.stringify(settings));
-    console.log('Full API URL:', `${apiUrl}/user/settings`);
+    console.log('Axios baseURL:', axios.defaults.baseURL);
     
-    // Make API call to update settings
-    const response = await axios({
-      method: 'post',
-      url: `${apiUrl}/user/settings`,
-      data: settings,
+    // Make API call to update settings using axios defaults
+    const response = await axios.post('/user/settings', settings, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
       },
       timeout: 10000
     });
@@ -197,6 +180,10 @@ export const updateSettings = async (settings: UserSettings): Promise<boolean> =
       if (error.response.data) {
         console.error('Response data:', JSON.stringify(error.response.data));
       }
+    } else if (error.request) {
+      console.error('No response received');
+      console.error('Request URL:', error.config?.url);
+      console.error('Request baseURL:', error.config?.baseURL);
     }
     return false;
   }
@@ -205,17 +192,11 @@ export const updateSettings = async (settings: UserSettings): Promise<boolean> =
 // Function to test API connectivity
 export const testSettingsApi = async (): Promise<boolean> => {
   try {
-    // Use the API_URL constant
-    const apiUrl = API_URL;
-    if (!apiUrl) {
-      console.error('API URL not configured');
-      return false;
-    }
+    console.log('Testing settings API connectivity');
+    console.log('Axios baseURL:', axios.defaults.baseURL);
     
-    console.log('Testing settings API connectivity:', `${apiUrl}/user/settings/test`);
-    
-    // Call the test endpoint
-    const response = await axios.get(`${apiUrl}/user/settings/test`, {
+    // Call the test endpoint using axios defaults
+    const response = await axios.get('/user/settings/test', {
       timeout: 5000
     });
     
@@ -226,6 +207,10 @@ export const testSettingsApi = async (): Promise<boolean> => {
     if (error.response) {
       console.error('Response status:', error.response.status);
       console.error('Response data:', JSON.stringify(error.response.data));
+    } else if (error.request) {
+      console.error('No response received');
+      console.error('Request URL:', error.config?.url);
+      console.error('Request baseURL:', error.config?.baseURL);
     }
     return false;
   }

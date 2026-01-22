@@ -48,27 +48,7 @@ const SettingsScreen = ({ navigation }: any) => {
         }
         
         // Load all settings from API
-        console.log('Loading settings from API...');
-        const userSettings = await getSettings();
-        console.log('Settings loaded:', userSettings);
-        
-        setAiModel(userSettings.aiModel);
-        setDarkMode(userSettings.darkMode);
-        setNotificationsEnabled(userSettings.notificationsEnabled);
-        setBiometricAuthEnabled(userSettings.biometricAuthEnabled);
-        setDataBackupEnabled(userSettings.dataBackupEnabled);
-        setReminderLeadTime(userSettings.reminderLeadTime);
-      } catch (error: any) {
-        console.error('Error loading settings:', error.message);
-        if (error.response) {
-          console.error('Response status:', error.response.status);
-          console.error('Response data:', JSON.stringify(error.response.data));
-        }
-        
-        Alert.alert(
-          'Error Loading Settings',
-          'Could not load settings from server. Using default settings.'
-        );
+        await loadSettingsFromApi();
       } finally {
         setLoading(false);
       }
@@ -88,11 +68,28 @@ const SettingsScreen = ({ navigation }: any) => {
         return;
       }
       
+      // Remove trailing slash if present
+      const normalizedUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+      
       // Update API URL using the function from apiConfig
-      const success = await updateApiUrl(apiUrl);
+      const success = await updateApiUrl(normalizedUrl);
       
       if (success) {
-        Alert.alert('Success', 'API settings saved successfully. You may need to log in again.');
+        // Update local state to match normalized URL
+        setApiUrl(normalizedUrl);
+        Alert.alert(
+          'Success', 
+          'API settings saved successfully. The new URL will be used for all API requests.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Reload settings from the new API
+                loadSettingsFromApi();
+              }
+            }
+          ]
+        );
       } else {
         Alert.alert('Error', 'Failed to save API settings');
       }
@@ -101,6 +98,36 @@ const SettingsScreen = ({ navigation }: any) => {
       Alert.alert('Error', 'Failed to save API settings');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Load settings from API
+  const loadSettingsFromApi = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading settings from API...');
+      const userSettings = await getSettings();
+      console.log('Settings loaded:', userSettings);
+      
+      setAiModel(userSettings.aiModel);
+      setDarkMode(userSettings.darkMode);
+      setNotificationsEnabled(userSettings.notificationsEnabled);
+      setBiometricAuthEnabled(userSettings.biometricAuthEnabled);
+      setDataBackupEnabled(userSettings.dataBackupEnabled);
+      setReminderLeadTime(userSettings.reminderLeadTime);
+    } catch (error: any) {
+      console.error('Error loading settings:', error.message);
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', JSON.stringify(error.response.data));
+      }
+      
+      Alert.alert(
+        'Error Loading Settings',
+        'Could not load settings from server. Using default settings.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
