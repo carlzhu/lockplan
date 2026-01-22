@@ -3,7 +3,7 @@
 # DoNow .NET 8 API 测试脚本
 # 此脚本测试主要的 API 端点以确保功能正常
 
-API_URL="http://localhost:5000/api/vpp"
+API_URL="http://localhost:5000/api/donow"
 echo "Testing DoNow API at $API_URL"
 echo "========================================"
 

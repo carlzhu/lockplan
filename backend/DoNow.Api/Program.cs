@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers(options =>
 {
     // 添加全局路由前缀
-    options.UseGeneralRoutePrefix("api/vpp");
+    options.UseGeneralRoutePrefix("api/donow");
 });
 builder.Services.AddEndpointsApiExplorer();
 
@@ -26,7 +26,7 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "DoNow API", 
         Version = "v1",
-        Description = "Smart task management application API - All endpoints are prefixed with /api/vpp"
+        Description = "Smart task management application API - All endpoints are prefixed with /api/donow"
     });
     
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme

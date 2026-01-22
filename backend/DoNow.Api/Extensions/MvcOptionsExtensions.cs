@@ -13,7 +13,7 @@ public static class MvcOptionsExtensions
     /// 为所有控制器添加统一的路由前缀
     /// </summary>
     /// <param name="opts">MVC 选项</param>
-    /// <param name="routePrefix">路由前缀，例如 "api/vpp"</param>
+    /// <param name="routePrefix">路由前缀，例如 "api/donow"</param>
     public static void UseGeneralRoutePrefix(this MvcOptions opts, string routePrefix)
     {
         opts.Conventions.Add(new RoutePrefixConvention(new RouteAttribute(routePrefix)));

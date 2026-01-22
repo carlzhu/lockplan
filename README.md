@@ -38,7 +38,7 @@ cd backend
 
 后端将运行在:
 - HTTP: http://localhost:5000
-- API 端点: http://localhost:5000/api/vpp/{endpoint}
+- API 端点: http://localhost:5000/api/donow/{endpoint}
 - Swagger: http://localhost:5000/swagger
 
 ### 3. 启动前端

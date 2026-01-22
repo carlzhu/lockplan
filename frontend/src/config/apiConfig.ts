@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // API route prefix - all API endpoints will be prefixed with this
-export const API_PREFIX = '/api/vpp';
+export const API_PREFIX = '/api/donow';
 
 // Default API URLs for different environments
 // .NET 8 backend runs on port 5000 by default

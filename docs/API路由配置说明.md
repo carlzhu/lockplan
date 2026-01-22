@@ -2,24 +2,24 @@
 
 ## 📍 路由结构
 
-DoNow API 使用统一的路由前缀 `/api/vpp`，所有 API 端点都在此前缀下。
+DoNow API 使用统一的路由前缀 `/api/donow`，所有 API 端点都在此前缀下。
 
 ### 完整 URL 格式
 
 ```
-http://localhost:5000/api/vpp/{controller}/{action}
+http://localhost:5000/api/donow/{controller}/{action}
 ```
 
 ### 示例端点
 
 | 功能 | 端点 | 完整 URL |
 |------|------|----------|
-| 用户注册 | `POST /auth/register` | `http://localhost:5000/api/vpp/auth/register` |
-| 用户登录 | `POST /auth/login` | `http://localhost:5000/api/vpp/auth/login` |
-| 获取任务列表 | `GET /tasks` | `http://localhost:5000/api/vpp/tasks` |
-| 创建任务 | `POST /tasks` | `http://localhost:5000/api/vpp/tasks` |
-| 获取事件列表 | `GET /events` | `http://localhost:5000/api/vpp/events` |
-| 获取分类列表 | `GET /categories` | `http://localhost:5000/api/vpp/categories` |
+| 用户注册 | `POST /auth/register` | `http://localhost:5000/api/donow/auth/register` |
+| 用户登录 | `POST /auth/login` | `http://localhost:5000/api/donow/auth/login` |
+| 获取任务列表 | `GET /tasks` | `http://localhost:5000/api/donow/tasks` |
+| 创建任务 | `POST /tasks` | `http://localhost:5000/api/donow/tasks` |
+| 获取事件列表 | `GET /events` | `http://localhost:5000/api/donow/events` |
+| 获取分类列表 | `GET /categories` | `http://localhost:5000/api/donow/categories` |
 
 ## 🔧 配置方式
 
@@ -31,7 +31,7 @@ http://localhost:5000/api/vpp/{controller}/{action}
 builder.Services.AddControllers(options =>
 {
     // 添加全局路由前缀
-    options.UseGeneralRoutePrefix("api/vpp");
+    options.UseGeneralRoutePrefix("api/donow");
 });
 ```
 
@@ -41,7 +41,7 @@ builder.Services.AddControllers(options =>
 
 ```typescript
 // API route prefix - all API endpoints will be prefixed with this
-export const API_PREFIX = '/api/vpp';
+export const API_PREFIX = '/api/donow';
 
 // Function to update axios base URL
 export const updateAxiosBaseUrl = (baseUrl: string) => {
@@ -57,7 +57,7 @@ export const updateAxiosBaseUrl = (baseUrl: string) => {
 - 支持多版本 API 共存
 
 ### 2. 命名空间隔离
-- 区分不同的 API 模块：`/api/vpp`, `/api/admin`, `/api/public`
+- 区分不同的 API 模块：`/api/donow`, `/api/admin`, `/api/public`
 - 便于权限控制和路由管理
 
 ### 3. 反向代理友好
@@ -91,7 +91,7 @@ export const API_PREFIX = '/api/v1';  // 修改这里
 **1. 后端 - Program.cs**
 ```csharp
 // 注释掉或删除这行
-// options.UseGeneralRoutePrefix("api/vpp");
+// options.UseGeneralRoutePrefix("api/donow");
 ```
 
 **2. 前端 - apiConfig.ts**
@@ -109,13 +109,13 @@ export const API_PREFIX = '';  // 设置为空字符串
 [Authorize]
 public class TasksController : ControllerBase
 {
-    [HttpGet]  // GET /api/vpp/tasks
+    [HttpGet]  // GET /api/donow/tasks
     public async Task<IActionResult> GetTasks() { }
     
-    [HttpPost]  // POST /api/vpp/tasks
+    [HttpPost]  // POST /api/donow/tasks
     public async Task<IActionResult> CreateTask() { }
     
-    [HttpGet("{id}")]  // GET /api/vpp/tasks/{id}
+    [HttpGet("{id}")]  // GET /api/donow/tasks/{id}
     public async Task<IActionResult> GetTask(string id) { }
 }
 ```
@@ -137,17 +137,17 @@ cd backend
 
 ```bash
 # 注册用户
-curl -X POST http://localhost:5000/api/vpp/auth/register \
+curl -X POST http://localhost:5000/api/donow/auth/register \
   -H "Content-Type: application/json" \
   -d '{"username":"test","email":"test@example.com","password":"Test123!"}'
 
 # 登录
-curl -X POST http://localhost:5000/api/vpp/auth/login \
+curl -X POST http://localhost:5000/api/donow/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"test","password":"Test123!"}'
 
 # 获取任务列表（需要 token）
-curl -X GET http://localhost:5000/api/vpp/tasks \
+curl -X GET http://localhost:5000/api/donow/tasks \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
@@ -155,7 +155,7 @@ curl -X GET http://localhost:5000/api/vpp/tasks \
 
 访问 http://localhost:5000/swagger 查看所有 API 端点。
 
-Swagger UI 会自动显示完整的路由路径（包含 `/api/vpp` 前缀）。
+Swagger UI 会自动显示完整的路由路径（包含 `/api/donow` 前缀）。
 
 ## 🔍 路由实现原理
 
