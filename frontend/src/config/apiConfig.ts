@@ -2,6 +2,9 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// API route prefix - all API endpoints will be prefixed with this
+export const API_PREFIX = '/api/vpp';
+
 // Default API URLs for different environments
 // .NET 8 backend runs on port 5000 by default
 // For iOS simulator, use localhost:5000
@@ -72,8 +75,8 @@ export const updateAxiosBaseUrl = (baseUrl: string) => {
   // Remove trailing slash if present
   const normalizedUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   
-  // Set the base URL for all axios requests
-  axios.defaults.baseURL = normalizedUrl;
-  console.log(`API URL updated to: ${normalizedUrl}`);
+  // Set the base URL for all axios requests (including API prefix)
+  axios.defaults.baseURL = `${normalizedUrl}${API_PREFIX}`;
+  console.log(`API URL updated to: ${normalizedUrl}${API_PREFIX}`);
 };
 

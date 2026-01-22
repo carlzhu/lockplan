@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using VocalClerk.Api.Extensions;
 using VocalClerk.Application.Interfaces;
 using VocalClerk.Infrastructure.Data;
 using VocalClerk.Infrastructure.Security;
@@ -11,7 +12,11 @@ using VocalClerk.Infrastructure.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // 添加全局路由前缀
+    options.UseGeneralRoutePrefix("api/vpp");
+});
 builder.Services.AddEndpointsApiExplorer();
 
 // Configure Swagger
@@ -21,7 +26,7 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "VocalClerk API", 
         Version = "v1",
-        Description = "Smart task management application API"
+        Description = "Smart task management application API - All endpoints are prefixed with /api/vpp"
     });
     
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -105,7 +110,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
-//if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
