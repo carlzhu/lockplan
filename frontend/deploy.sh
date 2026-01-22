@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# VocalClerk Deployment Script
-# This script helps with building and deploying the VocalClerk app
+# DoNow Deployment Script
+# This script helps with building and deploying the DoNow app
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -9,7 +9,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== VocalClerk Deployment Tool ===${NC}"
+echo -e "${GREEN}=== DoNow Deployment Tool ===${NC}"
 echo ""
 
 # Check if Expo CLI is installed

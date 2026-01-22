@@ -2,7 +2,7 @@
 
 ## 📍 路由结构
 
-VocalClerk API 使用统一的路由前缀 `/api/vpp`，所有 API 端点都在此前缀下。
+DoNow API 使用统一的路由前缀 `/api/vpp`，所有 API 端点都在此前缀下。
 
 ### 完整 URL 格式
 
@@ -25,7 +25,7 @@ http://localhost:5000/api/vpp/{controller}/{action}
 
 ### 后端配置
 
-在 `backend/VocalClerk.Api/Program.cs` 中配置全局路由前缀：
+在 `backend/DoNow.Api/Program.cs` 中配置全局路由前缀：
 
 ```csharp
 builder.Services.AddControllers(options =>
@@ -193,8 +193,8 @@ public class RoutePrefixConvention : IApplicationModelConvention
 
 ## 📚 相关文件
 
-- `backend/VocalClerk.Api/Program.cs` - 路由前缀配置
-- `backend/VocalClerk.Api/Extensions/MvcOptionsExtensions.cs` - 路由前缀实现
+- `backend/DoNow.Api/Program.cs` - 路由前缀配置
+- `backend/DoNow.Api/Extensions/MvcOptionsExtensions.cs` - 路由前缀实现
 - `frontend/src/config/apiConfig.ts` - 前端 API 配置
 - `backend/test-api.sh` - API 测试脚本
 

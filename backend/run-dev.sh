@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# VocalClerk Backend Development Runner
+# DoNow Backend Development Runner
 # This script runs the .NET 8 backend in development mode
 
-echo "Starting VocalClerk Backend (.NET 8)..."
+echo "Starting DoNow Backend (.NET 8)..."
 
 # Check if .NET 8 is installed
 if ! command -v dotnet &> /dev/null; then
@@ -17,7 +17,7 @@ DOTNET_VERSION=$(dotnet --version)
 echo "Using .NET SDK version: $DOTNET_VERSION"
 
 # Navigate to API project
-cd VocalClerk.Api
+cd DoNow.Api
 
 # Restore dependencies if needed
 if [ ! -d "bin" ]; then

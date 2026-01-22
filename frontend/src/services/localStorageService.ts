@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 
-const TASKS_KEY = '@vocalclerk_tasks';
-const SYNC_QUEUE_KEY = '@vocalclerk_sync_queue';
-const LAST_SYNC_KEY = '@vocalclerk_last_sync';
+const TASKS_KEY = '@donow_tasks';
+const SYNC_QUEUE_KEY = '@donow_sync_queue';
+const LAST_SYNC_KEY = '@donow_last_sync';
 
 // 本地任务数据结构
 export interface LocalTask {

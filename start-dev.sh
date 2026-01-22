@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# VocalClerk 开发环境启动脚本
+# DoNow 开发环境启动脚本
 # 同时启动前端和后端
 
 set -e
@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   VocalClerk 开发环境启动              ║${NC}"
+echo -e "${BLUE}║   DoNow 开发环境启动              ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 

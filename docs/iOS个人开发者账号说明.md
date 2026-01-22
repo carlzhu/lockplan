@@ -5,7 +5,7 @@
 使用个人免费开发者账号（Personal Development Team）时，会遇到以下错误：
 
 ```
-Cannot create a iOS App Development provisioning profile for "com.vocalclerk.app".
+Cannot create a iOS App Development provisioning profile for "com.donow.app".
 Personal development teams do not support the Push Notifications capability.
 ```
 

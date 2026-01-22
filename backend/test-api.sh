@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# VocalClerk .NET 8 API 测试脚本
+# DoNow .NET 8 API 测试脚本
 # 此脚本测试主要的 API 端点以确保功能正常
 
 API_URL="http://localhost:5000/api/vpp"
-echo "Testing VocalClerk API at $API_URL"
+echo "Testing DoNow API at $API_URL"
 echo "========================================"
 
 # 颜色定义

@@ -1,4 +1,4 @@
-// API configuration for the VocalClerk mobile app
+// API configuration for the DoNow mobile app
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

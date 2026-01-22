@@ -330,7 +330,7 @@ const SettingsScreen = ({ navigation }: any) => {
       </View>
       
       <View style={styles.footer}>
-        <Text style={styles.footerText}>VocalClerk v1.0.0</Text>
+        <Text style={styles.footerText}>DoNow v1.0.0</Text>
       </View>
     </ScrollView>
   );

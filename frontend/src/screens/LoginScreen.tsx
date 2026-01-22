@@ -89,7 +89,7 @@ const LoginScreen = ({ navigation }: any) => {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
-          <Text style={styles.title}>VocalClerk</Text>
+          <Text style={styles.title}>DoNow</Text>
           <Text style={styles.subtitle}>Login to your account</Text>
 
           <View style={styles.inputContainer}>

@@ -173,8 +173,8 @@ if (app.Environment.IsDevelopment())
 ## 📚 相关文档
 
 - [API路由配置说明](../docs/API路由配置说明.md)
-- [Program.cs](VocalClerk.Api/Program.cs)
-- [MvcOptionsExtensions.cs](VocalClerk.Api/Extensions/MvcOptionsExtensions.cs)
+- [Program.cs](DoNow.Api/Program.cs)
+- [MvcOptionsExtensions.cs](DoNow.Api/Extensions/MvcOptionsExtensions.cs)
 
 ---
 

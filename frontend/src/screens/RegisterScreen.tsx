@@ -45,7 +45,7 @@ const RegisterScreen = ({ navigation }: any) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.formContainer}>
           <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join VocalClerk today</Text>
+          <Text style={styles.subtitle}>Join DoNow today</Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Name</Text>

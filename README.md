@@ -1,4 +1,4 @@
-# VocalClerk
+# DoNow
 
 一个基于 React Native 和 .NET 8 的任务和事件管理应用。
 
@@ -96,10 +96,10 @@ cd frontend
 │   └── rebuild-all.sh    # 生成所有平台
 │
 ├── backend/              # .NET 8 后端
-│   ├── VocalClerk.Api/          # API 层
-│   ├── VocalClerk.Application/  # 应用层
-│   ├── VocalClerk.Domain/       # 领域层
-│   ├── VocalClerk.Infrastructure/ # 基础设施层
+│   ├── DoNow.Api/          # API 层
+│   ├── DoNow.Application/  # 应用层
+│   ├── DoNow.Domain/       # 领域层
+│   ├── DoNow.Infrastructure/ # 基础设施层
 │   ├── run-dev.sh        # 启动开发服务器
 │   └── test-api.sh       # API 测试脚本
 │
@@ -147,7 +147,7 @@ cd backend
 ./test-api.sh
 
 # 手动运行
-dotnet run --project VocalClerk.Api
+dotnet run --project DoNow.Api
 ```
 
 ### 前端
@@ -249,13 +249,13 @@ cd frontend
 ### 数据库迁移
 
 ```bash
-cd backend/VocalClerk.Infrastructure
+cd backend/DoNow.Infrastructure
 
 # 创建迁移
-dotnet ef migrations add <MigrationName> --startup-project ../VocalClerk.Api
+dotnet ef migrations add <MigrationName> --startup-project ../DoNow.Api
 
 # 应用迁移
-dotnet ef database update --startup-project ../VocalClerk.Api
+dotnet ef database update --startup-project ../DoNow.Api
 ```
 
 ## 🐛 故障排除

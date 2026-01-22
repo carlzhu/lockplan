@@ -1,4 +1,4 @@
-# VocalClerk Backend
+# DoNow Backend
 
 .NET 8 后端 API 服务。
 
@@ -9,7 +9,7 @@
 ./run-dev.sh
 
 # 或手动启动
-dotnet run --project VocalClerk.Api
+dotnet run --project DoNow.Api
 ```
 
 服务将运行在:
@@ -28,10 +28,10 @@ dotnet run --project VocalClerk.Api
 
 ```
 backend/
-├── VocalClerk.Api/          # API 层 (Controllers, Program.cs)
-├── VocalClerk.Application/  # 应用层 (DTOs, Interfaces)
-├── VocalClerk.Domain/       # 领域层 (Entities)
-└── VocalClerk.Infrastructure/ # 基础设施层 (Services, Data)
+├── DoNow.Api/          # API 层 (Controllers, Program.cs)
+├── DoNow.Application/  # 应用层 (DTOs, Interfaces)
+├── DoNow.Domain/       # 领域层 (Entities)
+└── DoNow.Infrastructure/ # 基础设施层 (Services, Data)
 ```
 
 ## 🗄️ 数据库
@@ -39,14 +39,14 @@ backend/
 ### 创建迁移
 
 ```bash
-cd VocalClerk.Infrastructure
-dotnet ef migrations add <MigrationName> --startup-project ../VocalClerk.Api
+cd DoNow.Infrastructure
+dotnet ef migrations add <MigrationName> --startup-project ../DoNow.Api
 ```
 
 ### 应用迁移
 
 ```bash
-dotnet ef database update --startup-project ../VocalClerk.Api
+dotnet ef database update --startup-project ../DoNow.Api
 ```
 
 ## 🛠️ 可用脚本

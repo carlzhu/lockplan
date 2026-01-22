@@ -24,7 +24,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vocalclerk.app",
+      "bundleIdentifier": "com.donow.app",
       "buildNumber": "1",
       "jsEngine": "hermes",
       "config": {
@@ -34,7 +34,7 @@
       "infoPlist": {
         "NSMicrophoneUsageDescription": "AI Voice Notes needs microphone access to record voice input for creating tasks",
         "NSSpeechRecognitionUsageDescription": "AI Voice Notes needs speech recognition to convert your voice to text for task creation",
-        "NSUserNotificationsUsageDescription": "VocalClerk needs notification permission to remind you about your tasks and events"
+        "NSUserNotificationsUsageDescription": "DoNow needs notification permission to remind you about your tasks and events"
       }
     },
     "android": {
@@ -42,7 +42,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.vocalclerk.app",
+      "package": "com.donow.app",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "jsEngine": "hermes",

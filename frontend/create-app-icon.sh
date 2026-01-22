@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# VocalClerk App Icon Generator
+# DoNow App Icon Generator
 # 使用 ImageMagick 创建应用图标
 
 set -e
 
-echo "🎨 开始生成 VocalClerk 应用图标..."
+echo "🎨 开始生成 DoNow 应用图标..."
 echo ""
 
 # 颜色定义
