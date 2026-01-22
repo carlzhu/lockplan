@@ -46,6 +46,16 @@ public class RoutePrefixConvention : IApplicationModelConvention
     {
         foreach (var controller in application.Controllers)
         {
+            // 只对 API 控制器应用路由前缀（排除 Swagger 等其他控制器）
+            // 检查控制器是否有 ApiController 特性
+            var hasApiControllerAttribute = controller.Attributes.Any(a => 
+                a.GetType().Name == "ApiControllerAttribute");
+            
+            if (!hasApiControllerAttribute)
+            {
+                continue; // 跳过非 API 控制器
+            }
+
             // 已经有路由前缀的控制器
             var matchedSelectors = controller.Selectors.Where(x => x.AttributeRouteModel != null).ToList();
             if (matchedSelectors.Any())
