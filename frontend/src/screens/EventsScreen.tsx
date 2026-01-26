@@ -430,7 +430,7 @@ const EventsScreen = ({ navigation }: any) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => navigation.navigate('CreateItem', { type: 'event' })}
+            onPress={() => navigation.navigate('UnifiedCreate', { type: 'event' })}
           >
             <Text style={styles.addButtonText}>+</Text>
           </TouchableOpacity>

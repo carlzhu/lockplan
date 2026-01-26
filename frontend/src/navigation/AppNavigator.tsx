@@ -7,6 +7,8 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import MainTabsScreen from '../screens/MainTabsScreen';
+import ItemsScreen from '../screens/ItemsScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import EditTaskScreen from '../screens/EditTaskScreen';
 import TaskInputScreen from '../screens/TaskInputScreen';
@@ -16,6 +18,8 @@ import EditEventScreen from '../screens/EditEventScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ApiTestScreen from '../screens/ApiTestScreen';
 import CreateItemScreen from '../screens/CreateItemScreen';
+import UnifiedCreateScreen from '../screens/UnifiedCreateScreen';
+import WeeklyAgendaScreen from '../screens/WeeklyAgendaScreen';
 
 // Context
 import { AuthContext } from '../context/AuthContext';
@@ -64,9 +68,29 @@ const AppNavigator = () => {
           // App screens
           <>
             <Stack.Screen
+              name="Main"
+              component={MainTabsScreen}
+              options={{ title: 'DoNow' }}
+            />
+            <Stack.Screen
+              name="Items"
+              component={ItemsScreen}
+              options={{ title: 'DoNow' }}
+            />
+            <Stack.Screen
               name="Home"
               component={HomeScreen}
-              options={{ title: 'DoNow' }}
+              options={{ title: 'DoNow (旧版)' }}
+            />
+            <Stack.Screen
+              name="UnifiedCreate"
+              component={UnifiedCreateScreen}
+              options={{ title: '创建' }}
+            />
+            <Stack.Screen
+              name="WeeklyAgenda"
+              component={WeeklyAgendaScreen}
+              options={{ title: '本周周会提纲' }}
             />
             <Stack.Screen
               name="CreateItem"

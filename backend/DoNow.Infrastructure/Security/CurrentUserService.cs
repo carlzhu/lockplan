@@ -6,7 +6,7 @@ using DoNow.Infrastructure.Data;
 
 namespace DoNow.Infrastructure.Security;
 
-public class CurrentUserService
+public class CurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly DoNowDbContext _context;

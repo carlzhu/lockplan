@@ -670,10 +670,10 @@ const HomeScreen = ({ navigation }: any) => {
             <Text style={styles.iconButtonText}>🔍</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => navigation.navigate('CreateItem', { type: 'task' })}
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('WeeklyAgenda')}
           >
-            <Text style={styles.addButtonText}>+</Text>
+            <Text style={styles.iconButtonText}>🗒️ 周会</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -728,9 +728,9 @@ const HomeScreen = ({ navigation }: any) => {
 
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => navigation.navigate('TaskInput')}
+        onPress={() => navigation.navigate('UnifiedCreate', { type: 'task' })}
       >
-        <Text style={styles.floatingButtonText}>Add with Text</Text>
+        <Text style={styles.floatingButtonIcon}>+</Text>
       </TouchableOpacity>
     </View>
   );
@@ -1140,22 +1140,25 @@ const styles = StyleSheet.create({
   },
   floatingButton: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-    backgroundColor: '#007aff',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    bottom: 20,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
-  floatingButtonText: {
+  floatingButtonIcon: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
+    fontSize: 32,
+    fontWeight: '300',
+    lineHeight: 32,
   },
 });
 

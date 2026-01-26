@@ -19,6 +19,10 @@ public class DoNowDbContext : DbContext
     public DbSet<AIProcessingResult> AIProcessingResults { get; set; } = null!;
     public DbSet<Event> Events { get; set; } = null!;
     public DbSet<EventTag> EventTags { get; set; } = null!;
+    
+    // 新增：统一的 Item 表
+    public DbSet<Item> Items { get; set; } = null!;
+    public DbSet<ItemTag> ItemTags { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +223,83 @@ public class DoNowDbContext : DbContext
             entity.HasOne(e => e.Event)
                 .WithMany(ev => ev.Tags)
                 .HasForeignKey(e => e.EventId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Tag)
+                .WithMany()
+                .HasForeignKey(e => e.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Item configuration (统一的项目表)
+        modelBuilder.Entity<Item>(entity =>
+        {
+            entity.ToTable("items");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Title).HasColumnName("title").IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Type).HasColumnName("type").HasConversion<string>().IsRequired();
+            
+            // 时间字段
+            entity.Property(e => e.DueDate).HasColumnName("due_date");
+            entity.Property(e => e.EventTime).HasColumnName("event_time");
+            entity.Property(e => e.ReminderTime).HasColumnName("reminder_time");
+            
+            // 状态字段
+            entity.Property(e => e.IsCompleted).HasColumnName("is_completed");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            
+            // 优先级/严重程度
+            entity.Property(e => e.Priority).HasColumnName("priority").HasMaxLength(20);
+            
+            // 分类
+            entity.Property(e => e.Category).HasColumnName("category").HasMaxLength(50);
+            
+            // 父子关系
+            entity.Property(e => e.ParentId).HasColumnName("parent_id");
+            
+            // 用户关联
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+            
+            // 原始输入
+            entity.Property(e => e.RawInputId).HasColumnName("raw_input_id");
+            entity.Property(e => e.OriginalInput).HasColumnName("original_input");
+            
+            // 时间戳
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+
+            // 关系配置
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Parent)
+                .WithMany(p => p.SubItems)
+                .HasForeignKey(e => e.ParentId)
+                .OnDelete(DeleteBehavior.Restrict); // 防止级联删除导致的问题
+
+            // 索引
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.ParentId);
+            entity.HasIndex(e => new { e.UserId, e.Type });
+        });
+
+        // ItemTag configuration (many-to-many)
+        modelBuilder.Entity<ItemTag>(entity =>
+        {
+            entity.ToTable("item_tags");
+            entity.HasKey(e => new { e.ItemId, e.TagId });
+            entity.Property(e => e.ItemId).HasColumnName("item_id");
+            entity.Property(e => e.TagId).HasColumnName("tag_id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+
+            entity.HasOne(e => e.Item)
+                .WithMany(i => i.Tags)
+                .HasForeignKey(e => e.ItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Tag)

@@ -8,6 +8,7 @@ using DoNow.Application.Interfaces;
 using DoNow.Infrastructure.Data;
 using DoNow.Infrastructure.Security;
 using DoNow.Infrastructure.Services;
+using DoNow.Infrastructure.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -100,14 +101,53 @@ builder.Services.AddCors(options =>
 
 // Register application services
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<JwtTokenProvider>();
 builder.Services.AddScoped<CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IAIService, QianwenAIService>();
+// 新增：统一的 Item 服务
+builder.Services.AddScoped<IItemService, ItemService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
+
+// 自动应用数据库迁移
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<DoNowDbContext>();
+        
+        // 检查是否需要迁移
+        var pendingMigrations = context.Database.GetPendingMigrations();
+        if (pendingMigrations.Any())
+        {
+            Console.WriteLine($"发现 {pendingMigrations.Count()} 个待应用的迁移...");
+            foreach (var migration in pendingMigrations)
+            {
+                Console.WriteLine($"  - {migration}");
+            }
+            
+            // 应用迁移
+            context.Database.Migrate();
+            Console.WriteLine("数据库迁移完成！");
+        }
+        else
+        {
+            Console.WriteLine("数据库已是最新版本。");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"数据库迁移失败: {ex.Message}");
+        // 不阻止应用启动
+    }
+}
 
 // Configure the HTTP request pipeline
 app.UseCors("AllowAll");
