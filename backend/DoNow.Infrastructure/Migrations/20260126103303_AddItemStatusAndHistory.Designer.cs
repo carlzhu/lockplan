@@ -3,6 +3,7 @@ using System;
 using DoNow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoNow.Infrastructure.Migrations
 {
     [DbContext(typeof(DoNowDbContext))]
-    partial class DoNowDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260126103303_AddItemStatusAndHistory")]
+    partial class AddItemStatusAndHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

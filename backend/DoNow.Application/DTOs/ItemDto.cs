@@ -16,6 +16,8 @@ public class ItemDto
     public string? ReminderTime { get; set; }
     
     // 状态
+    public string Status { get; set; } = "Todo"; // Todo, InProgress, Completed, OnHold, Cancelled
+    public string? StatusChangedAt { get; set; }
     public bool IsCompleted { get; set; }
     public string? CompletedAt { get; set; }
     

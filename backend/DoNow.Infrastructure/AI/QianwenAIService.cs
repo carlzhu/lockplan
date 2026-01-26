@@ -115,75 +115,73 @@ public class QianwenAIService : IAIService
 
     private string GetSystemPrompt(string type)
     {
-        if (type == "task")
-        {
-            return @"你是一个智能任务管理助手。你的职责是帮助用户优化任务描述，提取关键信息。
+        return @"你是一个智能任务和事件管理助手。你的职责是帮助用户优化输入内容，提取关键信息。
 
 你需要：
-1. 如果用户要求生成标题，从描述中提取关键信息生成简洁的标题（不超过20个字）
+1. 从内容中提取或生成简洁的标题（不超过20个字）
 2. 优化描述的语言表达，使其更清晰、专业
-3. 识别并提取时间信息（如""明天9点""、""下周三""等）
-4. 识别优先级关键词（紧急、重要、一般等）
-5. 保持原意，不要添加用户没有提到的信息
+3. 识别并提取时间信息（如""明天9点""、""本周五""、""下周一""、""月底""、""年前""等）
+4. 识别优先级关键词（紧急→critical、重要→high、普通→medium、次要→low）
+5. 判断类型（任务task、事件event、项目project、笔记note）
+6. 提取标签和分类
+7. 保持原意，不要添加用户没有提到的信息
+
+时间解析规则：
+- ""今天"" → 今天的日期
+- ""明天"" → 明天的日期
+- ""后天"" → 后天的日期
+- ""本周五"" → 本周五的日期
+- ""下周一"" → 下周一的日期
+- ""月底"" → 本月最后一天
+- ""年前"" → 春节前一周
+- ""X天后"" → 从今天算起X天后
+- 如果有具体时间（如""下午3点""），也要包含
 
 返回格式必须是严格的 JSON，包含以下字段：
 {
-  ""title"": ""任务标题（如果需要生成）"",
-  ""enhancedDescription"": ""优化后的描述"",
-  ""suggestedDateTime"": ""YYYY-MM-DD HH:mm:ss 格式的时间（如果识别到）"",
-  ""suggestedPriority"": ""Low/Medium/High（如果识别到）""
+  ""title"": ""标题"",
+  ""description"": ""优化后的描述"",
+  ""type"": ""task/event/project/note"",
+  ""priority"": ""critical/high/medium/low"",
+  ""dueDate"": ""YYYY-MM-DD HH:mm:ss（任务的截止时间）"",
+  ""eventTime"": ""YYYY-MM-DD HH:mm:ss（事件的发生时间）"",
+  ""category"": ""分类（工作、生活、学习等）"",
+  ""tags"": [""标签1"", ""标签2""]
 }
 
 注意：
 - 只返回 JSON，不要有其他文字
 - 如果某个字段无法确定，设置为 null
-- 时间必须是具体的日期时间，不能是相对时间";
-        }
-        else
-        {
-            return @"你是一个智能事件记录助手。你的职责是帮助用户优化事件描述，提取关键信息。
-
-你需要：
-1. 如果用户要求生成标题，从描述中提取关键信息生成简洁的标题（不超过20个字）
-2. 优化描述的语言表达，使其更清晰、专业
-3. 识别并提取时间信息
-4. 识别事件类别（工作、会议、生活、娱乐等）
-5. 提取可能的标签
-6. 保持原意，不要添加用户没有提到的信息
-
-返回格式必须是严格的 JSON，包含以下字段：
-{
-  ""title"": ""事件标题（如果需要生成）"",
-  ""enhancedDescription"": ""优化后的描述"",
-  ""suggestedDateTime"": ""YYYY-MM-DD HH:mm:ss 格式的时间（如果识别到）"",
-  ""suggestedCategory"": ""事件类别（如果识别到）"",
-  ""suggestedTags"": [""标签1"", ""标签2""]
-}
-
-注意：
-- 只返回 JSON，不要有其他文字
-- 如果某个字段无法确定，设置为 null
-- 时间必须是具体的日期时间，不能是相对时间";
-        }
+- 时间必须是具体的日期时间（YYYY-MM-DD HH:mm:ss格式）
+- 如果只有日期没有时间，时间部分设为 00:00:00
+- 任务使用 dueDate，事件使用 eventTime";
     }
 
     private string BuildPrompt(AIEnhanceRequest request)
     {
         var sb = new StringBuilder();
+        var text = request.GetText();
         
         if (request.GenerateTitle)
         {
-            sb.AppendLine("请为以下描述生成一个简洁的标题，并优化描述内容：");
+            sb.AppendLine("请为以下内容生成一个简洁的标题，并优化描述内容：");
         }
         else
         {
-            sb.AppendLine("请优化以下描述内容：");
+            sb.AppendLine("请优化以下内容：");
         }
         
         sb.AppendLine();
-        sb.AppendLine($"描述：{request.Description}");
+        sb.AppendLine($"内容：{text}");
         sb.AppendLine();
-        sb.AppendLine("请提取时间、优先级等关键信息，并以 JSON 格式返回。");
+        sb.AppendLine("请提取以下信息并以 JSON 格式返回：");
+        sb.AppendLine("1. 标题（如果需要生成）");
+        sb.AppendLine("2. 优化后的描述");
+        sb.AppendLine("3. 时间信息（如\"明天下午3点\"、\"本周五\"等，转换为具体日期时间）");
+        sb.AppendLine("4. 优先级（critical/high/medium/low）");
+        sb.AppendLine("5. 类型（task/event/project/note）");
+        sb.AppendLine("6. 标签（从内容中提取的关键词）");
+        sb.AppendLine("7. 分类（工作、生活、学习等）");
         
         return sb.ToString();
     }
@@ -225,16 +223,18 @@ public class QianwenAIService : IAIService
     {
         _logger.LogInformation("Using fallback enhancement");
         
+        var text = request.GetText();
         var response = new AIEnhanceResponse
         {
-            EnhancedDescription = request.Description.Trim()
+            Description = text.Trim(),
+            EnhancedDescription = text.Trim() // 兼容旧版本
         };
 
         // 基础标题生成
         if (request.GenerateTitle)
         {
-            var words = request.Description.Trim().Split(new[] { ' ', '，', '。', '、' }, StringSplitOptions.RemoveEmptyEntries);
-            var title = string.Join("", words.Take(5));
+            var sentences = text.Split(new[] { '。', '！', '？', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            var title = sentences.Length > 0 ? sentences[0].Trim() : text;
             if (title.Length > 20)
             {
                 title = title.Substring(0, 20);
@@ -243,18 +243,66 @@ public class QianwenAIService : IAIService
         }
 
         // 简单的优先级识别
-        var lowerDesc = request.Description.ToLower();
-        if (lowerDesc.Contains("紧急") || lowerDesc.Contains("重要") || lowerDesc.Contains("急"))
+        var lowerText = text.ToLower();
+        if (lowerText.Contains("紧急") || lowerText.Contains("urgent") || lowerText.Contains("asap"))
         {
+            response.Priority = "critical";
+            response.SuggestedPriority = "High"; // 兼容旧版本
+        }
+        else if (lowerText.Contains("重要") || lowerText.Contains("important"))
+        {
+            response.Priority = "high";
             response.SuggestedPriority = "High";
         }
-        else if (lowerDesc.Contains("一般") || lowerDesc.Contains("普通"))
+        else if (lowerText.Contains("普通") || lowerText.Contains("normal"))
         {
+            response.Priority = "medium";
             response.SuggestedPriority = "Medium";
+        }
+        else if (lowerText.Contains("次要") || lowerText.Contains("low"))
+        {
+            response.Priority = "low";
+            response.SuggestedPriority = "Low";
+        }
+
+        // 简单的类型识别
+        if (lowerText.Contains("会议") || lowerText.Contains("活动") || lowerText.Contains("聚会"))
+        {
+            response.Type = "event";
+        }
+        else if (lowerText.Contains("项目") || lowerText.Contains("计划"))
+        {
+            response.Type = "project";
+        }
+        else if (lowerText.Contains("记录") || lowerText.Contains("笔记"))
+        {
+            response.Type = "note";
         }
         else
         {
-            response.SuggestedPriority = "Low";
+            response.Type = "task";
+        }
+
+        // 简单的标签提取
+        var tags = new List<string>();
+        var categories = new[] { "工作", "生活", "学习", "健康", "家庭", "社交", "财务", "旅行" };
+        foreach (var category in categories)
+        {
+            if (text.Contains(category))
+            {
+                tags.Add(category);
+                if (response.Category == null)
+                {
+                    response.Category = category;
+                    response.SuggestedCategory = category;
+                }
+            }
+        }
+        
+        if (tags.Count > 0)
+        {
+            response.Tags = tags;
+            response.SuggestedTags = tags;
         }
 
         return response;

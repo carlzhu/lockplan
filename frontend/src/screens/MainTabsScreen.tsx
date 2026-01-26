@@ -7,7 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import ItemsScreen from './ItemsScreen';
+import ItemsScreenNew from './ItemsScreenNew';
 import SettingsScreen from './SettingsScreen';
 
 type TabType = 'items' | 'stats' | 'settings';
@@ -18,13 +18,13 @@ const MainTabsScreen = ({ navigation }: any) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'items':
-        return <ItemsScreen navigation={navigation} />;
+        return <ItemsScreenNew navigation={navigation} />;
       case 'stats':
         return <StatsView />;
       case 'settings':
         return <SettingsScreen navigation={navigation} />;
       default:
-        return <ItemsScreen navigation={navigation} />;
+        return <ItemsScreenNew navigation={navigation} />;
     }
   };
 

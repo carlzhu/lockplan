@@ -51,4 +51,14 @@ public interface IItemService
     /// 为项目添加子项目
     /// </summary>
     Task<ItemDto> AddSubItemAsync(long parentId, CreateItemDto dto);
+    
+    /// <summary>
+    /// 更改项目状态
+    /// </summary>
+    Task<ItemDto> ChangeStatusAsync(long id, ChangeStatusDto dto);
+    
+    /// <summary>
+    /// 获取项目的状态变更历史
+    /// </summary>
+    Task<IEnumerable<ItemStatusHistoryDto>> GetStatusHistoryAsync(long id);
 }

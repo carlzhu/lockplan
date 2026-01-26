@@ -304,6 +304,63 @@ public class ItemService : IItemService
         return null;
     }
 
+    public async System.Threading.Tasks.Task<ItemDto> ChangeStatusAsync(long id, ChangeStatusDto dto)
+    {
+        var userId = _currentUserService.GetUserId();
+        var item = await _context.Items
+            .Include(i => i.StatusHistory)
+            .FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
+
+        if (item == null)
+        {
+            throw new KeyNotFoundException($"Item with ID {id} not found");
+        }
+
+        // 解析状态
+        if (!Enum.TryParse<ItemStatus>(dto.Status, true, out var newStatus))
+        {
+            throw new ArgumentException($"Invalid status: {dto.Status}");
+        }
+
+        // 更改状态（会自动创建历史记录）
+        item.ChangeStatus(newStatus, dto.Comment);
+
+        await _context.SaveChangesAsync();
+
+        return (await GetByIdAsync(id))!;
+    }
+
+    public async System.Threading.Tasks.Task<IEnumerable<ItemStatusHistoryDto>> GetStatusHistoryAsync(long id)
+    {
+        var userId = _currentUserService.GetUserId();
+        
+        // 验证项目是否存在且属于当前用户
+        var itemExists = await _context.Items
+            .AnyAsync(i => i.Id == id && i.UserId == userId);
+
+        if (!itemExists)
+        {
+            throw new KeyNotFoundException($"Item with ID {id} not found");
+        }
+
+        var history = await _context.ItemStatusHistories
+            .Where(h => h.ItemId == id)
+            .OrderByDescending(h => h.ChangedAt)
+            .Select(h => new ItemStatusHistoryDto
+            {
+                Id = h.Id,
+                ItemId = h.ItemId,
+                OldStatus = h.OldStatus.HasValue ? h.OldStatus.Value.ToString() : null,
+                NewStatus = h.NewStatus.ToString(),
+                Comment = h.Comment,
+                ChangedAt = h.ChangedAt.ToString("yyyy-MM-dd HH:mm:ss"),
+                UserId = h.UserId
+            })
+            .ToListAsync();
+
+        return history;
+    }
+
     private ItemDto MapToDto(Item item)
     {
         return new ItemDto
@@ -315,6 +372,8 @@ public class ItemService : IItemService
             DueDate = item.DueDate?.ToString("yyyy-MM-dd HH:mm:ss"),
             EventTime = item.EventTime?.ToString("yyyy-MM-dd HH:mm:ss"),
             ReminderTime = item.ReminderTime?.ToString("yyyy-MM-dd HH:mm:ss"),
+            Status = item.Status.ToString(),
+            StatusChangedAt = item.StatusChangedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
             IsCompleted = item.IsCompleted,
             CompletedAt = item.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
             Priority = item.Priority,

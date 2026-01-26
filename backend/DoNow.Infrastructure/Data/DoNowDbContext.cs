@@ -23,6 +23,7 @@ public class DoNowDbContext : DbContext
     // 新增：统一的 Item 表
     public DbSet<Item> Items { get; set; } = null!;
     public DbSet<ItemTag> ItemTags { get; set; } = null!;
+    public DbSet<ItemStatusHistory> ItemStatusHistories { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -247,6 +248,8 @@ public class DoNowDbContext : DbContext
             entity.Property(e => e.ReminderTime).HasColumnName("reminder_time");
             
             // 状态字段
+            entity.Property(e => e.Status).HasColumnName("status").HasConversion<string>().IsRequired();
+            entity.Property(e => e.StatusChangedAt).HasColumnName("status_changed_at");
             entity.Property(e => e.IsCompleted).HasColumnName("is_completed");
             entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             
@@ -306,6 +309,34 @@ public class DoNowDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.TagId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ItemStatusHistory configuration (状态变更历史)
+        modelBuilder.Entity<ItemStatusHistory>(entity =>
+        {
+            entity.ToTable("item_status_histories");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ItemId).HasColumnName("item_id").IsRequired();
+            entity.Property(e => e.OldStatus).HasColumnName("old_status").HasConversion<string>();
+            entity.Property(e => e.NewStatus).HasColumnName("new_status").HasConversion<string>().IsRequired();
+            entity.Property(e => e.Comment).HasColumnName("comment");
+            entity.Property(e => e.ChangedAt).HasColumnName("changed_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired();
+
+            entity.HasOne(e => e.Item)
+                .WithMany(i => i.StatusHistory)
+                .HasForeignKey(e => e.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 索引
+            entity.HasIndex(e => e.ItemId);
+            entity.HasIndex(e => e.ChangedAt);
         });
     }
 }

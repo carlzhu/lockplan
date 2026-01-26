@@ -220,4 +220,52 @@ public class ItemsController : ControllerBase
             return StatusCode(500, new { message = "Failed to add sub-item" });
         }
     }
+
+    /// <summary>
+    /// 更改项目状态
+    /// </summary>
+    [HttpPost("{id}/change-status")]
+    public async Task<ActionResult<ItemDto>> ChangeStatus(long id, [FromBody] ChangeStatusDto dto)
+    {
+        try
+        {
+            var item = await _itemService.ChangeStatusAsync(id, dto);
+            return Ok(item);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing status for item {ItemId}", id);
+            return StatusCode(500, new { message = "Failed to change status" });
+        }
+    }
+
+    /// <summary>
+    /// 获取项目的状态变更历史
+    /// </summary>
+    [HttpGet("{id}/status-history")]
+    public async Task<ActionResult<IEnumerable<ItemStatusHistoryDto>>> GetStatusHistory(long id)
+    {
+        try
+        {
+            var history = await _itemService.GetStatusHistoryAsync(id);
+            return Ok(history);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting status history for item {ItemId}", id);
+            return StatusCode(500, new { message = "Failed to get status history" });
+        }
+    }
 }

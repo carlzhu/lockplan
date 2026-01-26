@@ -1,6 +1,37 @@
 namespace DoNow.Domain.Entities;
 
 /// <summary>
+/// 项目状态
+/// </summary>
+public enum ItemStatus
+{
+    /// <summary>
+    /// 待办 - 尚未开始
+    /// </summary>
+    Todo,
+    
+    /// <summary>
+    /// 进行中 - 正在处理
+    /// </summary>
+    InProgress,
+    
+    /// <summary>
+    /// 已完成 - 已经完成
+    /// </summary>
+    Completed,
+    
+    /// <summary>
+    /// 搁置 - 暂时搁置
+    /// </summary>
+    OnHold,
+    
+    /// <summary>
+    /// 已取消 - 不再执行
+    /// </summary>
+    Cancelled
+}
+
+/// <summary>
 /// 统一的项目实体，可以是任务、事件、项目等
 /// </summary>
 public class Item
@@ -42,7 +73,17 @@ public class Item
     // ==================== 状态相关 ====================
     
     /// <summary>
-    /// 是否完成（主要用于任务）
+    /// 项目状态
+    /// </summary>
+    public ItemStatus Status { get; set; } = ItemStatus.Todo;
+    
+    /// <summary>
+    /// 状态变更时间
+    /// </summary>
+    public DateTime? StatusChangedAt { get; set; }
+    
+    /// <summary>
+    /// 是否完成（主要用于任务）- 保留用于向后兼容
     /// </summary>
     public bool IsCompleted { get; set; } = false;
     
@@ -81,6 +122,13 @@ public class Item
     /// 子项目列表
     /// </summary>
     public ICollection<Item> SubItems { get; set; } = new List<Item>();
+    
+    // ==================== 状态历史 ====================
+    
+    /// <summary>
+    /// 状态变更历史
+    /// </summary>
+    public ICollection<ItemStatusHistory> StatusHistory { get; set; } = new List<ItemStatusHistory>();
     
     // ==================== 标签 ====================
     
@@ -133,23 +181,85 @@ public class Item
     // ==================== 业务方法 ====================
     
     /// <summary>
+    /// 更改状态（带历史记录）
+    /// </summary>
+    public ItemStatusHistory ChangeStatus(ItemStatus newStatus, string? comment = null)
+    {
+        var oldStatus = Status;
+        
+        if (Status != newStatus)
+        {
+            Status = newStatus;
+            StatusChangedAt = DateTime.UtcNow;
+            UpdatedAt = DateTime.UtcNow;
+            
+            // 同步 IsCompleted 字段（向后兼容）
+            if (newStatus == ItemStatus.Completed)
+            {
+                IsCompleted = true;
+                CompletedAt = DateTime.UtcNow;
+            }
+            else if (IsCompleted && newStatus != ItemStatus.Completed)
+            {
+                IsCompleted = false;
+                CompletedAt = null;
+            }
+        }
+        
+        // 创建历史记录
+        var history = new ItemStatusHistory
+        {
+            ItemId = Id,
+            OldStatus = oldStatus,
+            NewStatus = newStatus,
+            Comment = comment,
+            ChangedAt = DateTime.UtcNow,
+            UserId = UserId
+        };
+        
+        StatusHistory.Add(history);
+        
+        return history;
+    }
+    
+    /// <summary>
     /// 标记为已完成
     /// </summary>
-    public void MarkAsCompleted()
+    public ItemStatusHistory MarkAsCompleted(string? comment = null)
     {
-        IsCompleted = true;
-        CompletedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
+        return ChangeStatus(ItemStatus.Completed, comment);
     }
     
     /// <summary>
     /// 标记为未完成
     /// </summary>
-    public void MarkAsNotCompleted()
+    public ItemStatusHistory MarkAsNotCompleted(string? comment = null)
     {
-        IsCompleted = false;
-        CompletedAt = null;
-        UpdatedAt = DateTime.UtcNow;
+        return ChangeStatus(ItemStatus.Todo, comment);
+    }
+    
+    /// <summary>
+    /// 开始进行
+    /// </summary>
+    public ItemStatusHistory StartProgress(string? comment = null)
+    {
+        return ChangeStatus(ItemStatus.InProgress, comment);
+    }
+    
+    /// <summary>
+    /// 搁置
+    /// </summary>
+    public ItemStatusHistory PutOnHold(string? comment = null)
+    {
+        return ChangeStatus(ItemStatus.OnHold, comment);
+    }
+    
+    /// <summary>
+    /// 取消
+    /// </summary>
+    public ItemStatusHistory Cancel(string? comment = null)
+    {
+        return ChangeStatus(ItemStatus.Cancelled, comment);
     }
     
     /// <summary>

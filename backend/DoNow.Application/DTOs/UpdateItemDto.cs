@@ -14,6 +14,7 @@ public class UpdateItemDto
     public string? ReminderTime { get; set; }
     
     // 状态
+    public string? Status { get; set; } // Todo, InProgress, Completed, OnHold, Cancelled
     public bool? IsCompleted { get; set; }
     
     // 优先级/严重程度

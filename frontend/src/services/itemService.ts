@@ -2,6 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ItemType = 'task' | 'event' | 'project' | 'note';
+export type ItemStatus = 'Todo' | 'InProgress' | 'Completed' | 'OnHold' | 'Cancelled';
 
 export interface Item {
   id: number;
@@ -11,6 +12,8 @@ export interface Item {
   dueDate?: string;
   eventTime?: string;
   reminderTime?: string;
+  status: ItemStatus;
+  statusChangedAt?: string;
   isCompleted: boolean;
   completedAt?: string;
   priority?: string;
@@ -20,6 +23,21 @@ export interface Item {
   tags?: string[];
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface ItemStatusHistory {
+  id: number;
+  itemId: number;
+  oldStatus?: ItemStatus;
+  newStatus: ItemStatus;
+  comment?: string;
+  changedAt: string;
+  userId: string;
+}
+
+export interface ChangeStatusDto {
+  status: ItemStatus;
+  comment?: string;
 }
 
 export interface CreateItemDto {
@@ -184,4 +202,67 @@ export const createTask = async (data: Omit<CreateItemDto, 'type'>): Promise<Ite
  */
 export const createEvent = async (data: Omit<CreateItemDto, 'type'>): Promise<Item> => {
   return createItem({ ...data, type: 'event' });
+};
+
+/**
+ * 更改项目状态
+ */
+export const changeItemStatus = async (
+  id: number,
+  dto: ChangeStatusDto
+): Promise<Item> => {
+  const response = await axios.post(`/items/${id}/change-status`, dto);
+  return response.data;
+};
+
+/**
+ * 获取项目的状态变更历史
+ */
+export const getItemStatusHistory = async (
+  id: number
+): Promise<ItemStatusHistory[]> => {
+  const response = await axios.get(`/items/${id}/status-history`);
+  return response.data;
+};
+
+/**
+ * 获取状态标签（中文）
+ */
+export const getStatusLabel = (status: ItemStatus): string => {
+  const labels: Record<ItemStatus, string> = {
+    'Todo': '待办',
+    'InProgress': '进行中',
+    'Completed': '已完成',
+    'OnHold': '搁置',
+    'Cancelled': '已取消',
+  };
+  return labels[status];
+};
+
+/**
+ * 获取状态图标
+ */
+export const getStatusIcon = (status: ItemStatus): string => {
+  const icons: Record<ItemStatus, string> = {
+    'Todo': '⭕',
+    'InProgress': '🔄',
+    'Completed': '✅',
+    'OnHold': '⏸️',
+    'Cancelled': '❌',
+  };
+  return icons[status];
+};
+
+/**
+ * 获取状态颜色
+ */
+export const getStatusColor = (status: ItemStatus): string => {
+  const colors: Record<ItemStatus, string> = {
+    'Todo': '#8e8e93',
+    'InProgress': '#007AFF',
+    'Completed': '#34C759',
+    'OnHold': '#FF9500',
+    'Cancelled': '#FF3B30',
+  };
+  return colors[status];
 };

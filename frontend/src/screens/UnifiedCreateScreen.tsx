@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -12,21 +11,19 @@ import {
   ScrollView,
   Alert,
   Switch,
+  SafeAreaView,
+  Modal,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
-import { createItem, CreateItemDto, ItemType } from '../services/itemService';
+import { createItem, CreateItemDto } from '../services/itemService';
 import { EventCategory, getEventCategoryName, getEventCategoryIcon } from '../services/eventService';
 import { scheduleTaskNotification } from '../services/notificationService';
 import { enhanceWithAI } from '../services/aiService';
+import { useSingleExecution } from '../hooks/useDebounce';
 
-type ItemTypeLocal = 'task' | 'event';
-
-const UnifiedCreateScreen = ({ navigation, route }: any) => {
-  const initialType = route?.params?.type || 'task';
-  
-  const [itemType, setItemType] = useState<ItemTypeLocal>(initialType);
+const UnifiedCreateScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dateTime, setDateTime] = useState('');
@@ -34,58 +31,105 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [aiProcessing, setAiProcessing] = useState(false);
   
-  // 语音输入状态
+  const [category, setCategory] = useState<EventCategory>(EventCategory.NORMAL);
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical' | ''>('');
+  const [tags, setTags] = useState<string>('');
+  const [enableReminder, setEnableReminder] = useState(false);
+  const [reminderMinutes, setReminderMinutes] = useState(15);
+
+  // Voice input state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // AI processing state
+  const [aiProcessing, setAiProcessing] = useState(false);
   
-  // 任务特有字段
-  const [priority, setPriority] = useState('');
-  const [enableReminder, setEnableReminder] = useState(false);
-  const [reminderMinutes, setReminderMinutes] = useState(15);
-  
-  // 事件特有字段
-  const [category, setCategory] = useState<EventCategory>(EventCategory.NORMAL);
-  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical' | ''>('');
-  const [tags, setTags] = useState<string>('');
+  // Quick input state (for raw voice/text input before AI enhancement)
+  const [quickInput, setQuickInput] = useState('');
+  const [showQuickInput, setShowQuickInput] = useState(false);
 
   useEffect(() => {
-    // 初始化语音识别
-    Voice.onSpeechStart = () => console.log('Speech started');
-    Voice.onSpeechEnd = () => console.log('Speech ended');
+    // Initialize Voice
+    Voice.onSpeechStart = () => {
+      console.log('Speech started');
+      setIsRecording(true);
+    };
+    
+    Voice.onSpeechEnd = () => {
+      console.log('Speech ended');
+      setIsRecording(false);
+    };
+    
     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
+      console.log('Speech results:', e);
       if (e.value && e.value.length > 0) {
-        setDescription(description + (description ? ' ' : '') + e.value[0]);
+        // 只使用最终结果，不追加
+        let recognizedText = e.value[0];
+        // 添加智能标点符号
+        recognizedText = addSmartPunctuation(recognizedText);
+        setQuickInput(recognizedText);
       }
     };
+    
+    Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
+      // 显示实时识别结果
+      if (e.value && e.value.length > 0) {
+        setQuickInput(e.value[0]);
+      }
+    };
+    
     Voice.onSpeechError = (e: SpeechErrorEvent) => {
       console.error('Speech error:', e);
-      Alert.alert('语音识别失败', '请重试或手动输入');
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setRecordingDuration(0);
+      Alert.alert('提示', '语音识别出错，请重试');
     };
 
     return () => {
+      Voice.destroy().then(Voice.removeAllListeners);
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-      Voice.destroy().catch(console.error);
     };
-  }, [description]);
+  }, []);
+
+  // 智能添加标点符号
+  const addSmartPunctuation = (text: string): string => {
+    if (!text) return text;
+    
+    let result = text;
+    
+    // 在常见的停顿词后添加逗号
+    const pauseWords = ['然后', '接着', '另外', '还有', '以及', '并且', '而且'];
+    pauseWords.forEach(word => {
+      const regex = new RegExp(`(${word})(?![，。！？、])`, 'g');
+      result = result.replace(regex, `${word}，`);
+    });
+    
+    // 在句子结尾添加句号（如果没有标点）
+    if (result && !result.match(/[，。！？、]$/)) {
+      result += '。';
+    }
+    
+    return result;
+  };
 
   const startVoiceInput = async () => {
     try {
-      setIsRecording(true);
+      await Voice.start('zh-CN');
       setRecordingDuration(0);
       timerRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
-      
-      await Voice.start('zh-CN');
     } catch (error) {
-      console.error('Failed to start voice input:', error);
+      console.error('Error starting voice:', error);
       Alert.alert('错误', '无法启动语音输入');
-      setIsRecording(false);
     }
   };
 
@@ -96,52 +140,96 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      setIsRecording(false);
+      setRecordingDuration(0);
     } catch (error) {
-      console.error('Failed to stop voice input:', error);
+      console.error('Error stopping voice:', error);
     }
   };
 
   const handleAIEnhance = async () => {
-    if (!description.trim()) {
-      Alert.alert('提示', '请先输入描述内容');
+    const inputText = quickInput.trim() || description.trim();
+    
+    if (!inputText) {
+      Alert.alert('提示', '请先输入内容或使用语音输入');
       return;
     }
 
     try {
       setAiProcessing(true);
-      
-      // 调用 AI 服务润色描述并生成标题
-      const response = await enhanceWithAI({
-        description: description,
-        type: itemType,
-        generateTitle: !title.trim()
+      const result = await enhanceWithAI({
+        description: inputText,
+        type: category === EventCategory.NORMAL ? 'task' : 'event',
+        generateTitle: true,
       });
 
-      if (response) {
-        if (response.title && !title.trim()) {
-          setTitle(response.title);
-        }
-        if (response.enhancedDescription) {
-          setDescription(response.enhancedDescription);
-        }
-        
-        // 如果 AI 识别出了时间信息
-        if (response.suggestedDateTime) {
-          setDateTime(response.suggestedDateTime);
-          setDateTimeObj(new Date(response.suggestedDateTime));
-        }
-        
-        // 如果 AI 识别出了优先级
-        if (response.suggestedPriority && itemType === 'task') {
-          setPriority(response.suggestedPriority);
-        }
-        
-        Alert.alert('✨ AI 润色完成', '内容已优化');
+      // 智能填充所有字段
+      if (result.title) {
+        setTitle(result.title);
       }
-    } catch (error: any) {
+      
+      if (result.enhancedDescription) {
+        setDescription(result.enhancedDescription);
+      }
+      
+      if (result.suggestedPriority) {
+        const priorityMap: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
+          'Low': 'low',
+          'Medium': 'medium',
+          'High': 'high',
+          'Critical': 'critical',
+        };
+        setPriority(priorityMap[result.suggestedPriority] || 'medium');
+      }
+      
+      if (result.suggestedTags && result.suggestedTags.length > 0) {
+        setTags(result.suggestedTags.join(', '));
+      }
+      
+      // 处理建议的时间
+      if (result.suggestedDateTime) {
+        try {
+          const suggestedDate = new Date(result.suggestedDateTime);
+          if (!isNaN(suggestedDate.getTime())) {
+            setDateTimeObj(suggestedDate);
+            const year = suggestedDate.getFullYear();
+            const month = String(suggestedDate.getMonth() + 1).padStart(2, '0');
+            const day = String(suggestedDate.getDate()).padStart(2, '0');
+            const hours = String(suggestedDate.getHours()).padStart(2, '0');
+            const minutes = String(suggestedDate.getMinutes()).padStart(2, '0');
+            const seconds = String(suggestedDate.getSeconds()).padStart(2, '0');
+            setDateTime(`${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
+          }
+        } catch (e) {
+          console.error('Error parsing suggested date:', e);
+        }
+      }
+      
+      // 处理建议的类别
+      if (result.suggestedCategory) {
+        const categoryMap: Record<string, EventCategory> = {
+          'task': EventCategory.NORMAL,
+          'normal': EventCategory.NORMAL,
+          'meeting': EventCategory.MEETING,
+          'reminder': EventCategory.REMINDER,
+          'milestone': EventCategory.MILESTONE,
+          'exception': EventCategory.EXCEPTION,
+          'feedback': EventCategory.FEEDBACK,
+          'idea': EventCategory.IDEA,
+        };
+        const suggestedCat = categoryMap[result.suggestedCategory.toLowerCase()];
+        if (suggestedCat) {
+          setCategory(suggestedCat);
+        }
+      }
+
+      // 清空快速输入框，收起该区域
+      setQuickInput('');
+      setShowQuickInput(false);
+      
+      Alert.alert('成功', 'AI 已根据描述智能填充各项内容');
+    } catch (error) {
       console.error('AI enhance error:', error);
-      Alert.alert('提示', 'AI 处理完成');
+      Alert.alert('提示', 'AI 润色失败，请稍后重试');
     } finally {
       setAiProcessing(false);
     }
@@ -149,19 +237,15 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
-    setShowTimePicker(false);
-    
     if (event.type === 'dismissed' || !selectedDate) return;
     
     if (dateTime) {
       const existingDate = new Date(dateTimeObj);
       selectedDate.setHours(existingDate.getHours());
       selectedDate.setMinutes(existingDate.getMinutes());
-      selectedDate.setSeconds(existingDate.getSeconds());
     }
     
     setDateTimeObj(selectedDate);
-    
     const year = selectedDate.getFullYear();
     const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
     const day = String(selectedDate.getDate()).padStart(2, '0');
@@ -174,14 +258,11 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
 
   const onTimeChange = (event: any, selectedTime?: Date) => {
     setShowTimePicker(false);
-    setShowDatePicker(false);
-    
     if (event.type === 'dismissed' || !selectedTime) return;
     
     const newDateTime = new Date(dateTimeObj);
     newDateTime.setHours(selectedTime.getHours());
     newDateTime.setMinutes(selectedTime.getMinutes());
-    newDateTime.setSeconds(selectedTime.getSeconds());
     setDateTimeObj(newDateTime);
     
     const year = newDateTime.getFullYear();
@@ -194,47 +275,60 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
     setDateTime(`${year}-${month}-${day} ${hours}:${minutes}:${seconds}`);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitInternal = async () => {
     if (!title.trim()) {
-      Alert.alert('提示', '请输入标题或使用 AI 生成');
+      Alert.alert('提示', '请输入标题');
       return;
     }
 
     try {
       setLoading(true);
       
+      const isTask = category === EventCategory.NORMAL;
+      
+      let reminderTime: string | undefined = undefined;
+      if (enableReminder && dateTime) {
+        const dueDateTime = new Date(dateTime);
+        const reminderDateTime = new Date(dueDateTime.getTime() - reminderMinutes * 60000);
+        const year = reminderDateTime.getFullYear();
+        const month = String(reminderDateTime.getMonth() + 1).padStart(2, '0');
+        const day = String(reminderDateTime.getDate()).padStart(2, '0');
+        const hours = String(reminderDateTime.getHours()).padStart(2, '0');
+        const minutes = String(reminderDateTime.getMinutes()).padStart(2, '0');
+        const seconds = String(reminderDateTime.getSeconds()).padStart(2, '0');
+        reminderTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      }
+      
       const itemData: CreateItemDto = {
         title,
         description,
-        type: itemType as ItemType,
-        dueDate: itemType === 'task' ? dateTime : undefined,
-        eventTime: itemType === 'event' ? dateTime : undefined,
-        reminderTime: enableReminder && dateTime ? reminderTime : undefined,
-        priority: itemType === 'task' ? priority : severity,
-        category: itemType === 'event' ? category : undefined,
-        tags: itemType === 'event' && tags.trim() ? tags.split(',').map(t => t.trim()).filter(t => t) : undefined,
+        type: isTask ? 'task' : 'event',
+        dueDate: isTask ? dateTime : undefined,
+        eventTime: !isTask ? dateTime : undefined,
+        reminderTime: reminderTime,
+        priority: priority || undefined,
+        category: !isTask ? category : undefined,
+        tags: tags.trim() ? tags.split(',').map(t => t.trim()).filter(t => t) : undefined,
       };
 
       const result = await createItem(itemData);
       
-      // 如果是任务且启用提醒
-      if (itemType === 'task' && enableReminder && dateTime) {
-        const dueDateTime = new Date(dateTime);
-        const reminderTime = new Date(dueDateTime.getTime() - reminderMinutes * 60000);
+      if (isTask && enableReminder && dateTime && reminderTime) {
+        const reminderDateTime = new Date(reminderTime);
         
-        if (reminderTime > new Date()) {
+        if (reminderDateTime > new Date()) {
           await scheduleTaskNotification(
             result.id!,
             result.title,
             result.description || '点击查看详情',
-            reminderTime,
-            priority === 'High' ? 'high' : priority === 'Medium' ? 'medium' : 'low'
+            reminderDateTime,
+            priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low'
           );
         }
       }
       
       navigation.navigate('Main');
-      setTimeout(() => Alert.alert('成功', `${itemType === 'task' ? '任务' : '事件'}创建成功！`), 300);
+      setTimeout(() => Alert.alert('成功', `${isTask ? '任务' : '事件'}创建成功！`), 300);
     } catch (error: any) {
       console.error('Error creating item:', error);
       Alert.alert('错误', error.message || '创建失败');
@@ -243,127 +337,79 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
     }
   };
 
+  // 使用防抖 Hook 包装提交函数
+  const [handleSubmit, isSubmitting] = useSingleExecution(handleSubmitInternal);
+
   return (
-    <TouchableWithoutFeedback onPress={() => {
-      if (showDatePicker || showTimePicker) {
-        setShowDatePicker(false);
-        setShowTimePicker(false);
-      }
-    }}>
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
+        {/* 快速输入小按钮 - 浮动在右上角 */}
+        <TouchableOpacity 
+          style={styles.floatingQuickButton}
+          onPress={() => setShowQuickInput(true)}
+        >
+          <Ionicons name="flash" size={20} color="#fff" />
+        </TouchableOpacity>
+
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <View style={styles.formContainer}>
-            {/* 类型切换 */}
-            <View style={styles.typeSwitcher}>
-              <TouchableOpacity
-                style={[styles.typeButton, styles.typeButtonLeft, itemType === 'task' && styles.typeButtonActive]}
-                onPress={() => setItemType('task')}
-              >
-                <Text style={[styles.typeButtonText, itemType === 'task' && styles.typeButtonTextActive]}>
-                  ✓ 任务
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.typeButton, styles.typeButtonRight, itemType === 'event' && styles.typeButtonActive]}
-                onPress={() => setItemType('event')}
-              >
-                <Text style={[styles.typeButtonText, itemType === 'event' && styles.typeButtonTextActive]}>
-                  📅 事件
-                </Text>
-              </TouchableOpacity>
+            <Text style={styles.title}>创建项目</Text>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>标题</Text>
+              <View style={styles.titleRow}>
+                <TextInput
+                  style={styles.titleInput}
+                  placeholder="输入标题"
+                  value={title}
+                  onChangeText={setTitle}
+                />
+                <TouchableOpacity 
+                  style={styles.categoryDropdown}
+                  onPress={() => {
+                    // 显示类别选择器
+                    Alert.alert(
+                      '选择类别',
+                      '',
+                      [
+                        { text: '✓ 任务', onPress: () => setCategory(EventCategory.NORMAL) },
+                        { text: '👥 会议', onPress: () => setCategory(EventCategory.MEETING) },
+                        { text: '⏰ 提醒', onPress: () => setCategory(EventCategory.REMINDER) },
+                        { text: '🎯 里程碑', onPress: () => setCategory(EventCategory.MILESTONE) },
+                        { text: '⚠️ 异常', onPress: () => setCategory(EventCategory.EXCEPTION) },
+                        { text: '💬 反馈', onPress: () => setCategory(EventCategory.FEEDBACK) },
+                        { text: '💡 想法', onPress: () => setCategory(EventCategory.IDEA) },
+                        { text: '取消', style: 'cancel' },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={styles.categoryDropdownText}>
+                    {getEventCategoryIcon(category)} {getEventCategoryName(category)}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#666" />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <Text style={styles.title}>
-              {itemType === 'task' ? '创建任务' : '创建事件'}
-            </Text>
-
-            {/* 标题 */}
             <View style={styles.inputContainer}>
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>标题</Text>
-                {!title.trim() && description.trim() && (
-                  <TouchableOpacity onPress={handleAIEnhance} disabled={aiProcessing}>
-                    <Text style={styles.aiHint}>
-                      {aiProcessing ? '生成中...' : '✨ AI 生成标题'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Text style={styles.label}>描述</Text>
               <TextInput
-                style={styles.input}
-                placeholder={itemType === 'task' ? '输入任务标题' : '输入事件标题'}
-                value={title}
-                onChangeText={setTitle}
+                style={styles.textArea}
+                placeholder="描述内容"
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
               />
             </View>
 
-            {/* 描述（带语音输入和 AI 润色） */}
             <View style={styles.inputContainer}>
-              <View style={styles.labelRow}>
-                <Text style={styles.label}>描述</Text>
-                {description.trim() && (
-                  <TouchableOpacity onPress={handleAIEnhance} disabled={aiProcessing}>
-                    <Text style={styles.aiHint}>
-                      {aiProcessing ? '润色中...' : '✨ AI 润色'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <View style={styles.textAreaWrapper}>
-                <TextInput
-                  style={styles.textArea}
-                  placeholder={itemType === 'task' ? '描述任务内容，可以包含时间、优先级等信息' : '描述事件内容'}
-                  value={description}
-                  onChangeText={setDescription}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
-                <TouchableOpacity
-                  style={[styles.voiceButton, isRecording && styles.voiceButtonActive]}
-                  onPress={isRecording ? stopVoiceInput : startVoiceInput}
-                >
-                  <Ionicons 
-                    name={isRecording ? "stop-circle" : "mic"} 
-                    size={24} 
-                    color={isRecording ? "#ff3b30" : "#4a90e2"} 
-                  />
-                </TouchableOpacity>
-              </View>
-              {isRecording && (
-                <Text style={styles.recordingHint}>
-                  🎤 正在录音... {recordingDuration}秒
-                </Text>
-              )}
-            </View>
-
-            {/* 事件类别（仅事件） */}
-            {itemType === 'event' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>类别</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                  {Object.values(EventCategory).map((cat) => (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.categoryChip, category === cat && styles.categoryChipSelected]}
-                      onPress={() => setCategory(cat)}
-                    >
-                      <Text style={styles.categoryIcon}>{getEventCategoryIcon(cat)}</Text>
-                      <Text style={[styles.categoryText, category === cat && styles.categoryTextSelected]}>
-                        {getEventCategoryName(cat)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* 日期时间 */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>{itemType === 'task' ? '截止时间' : '事件时间'}</Text>
+              <Text style={styles.label}>时间</Text>
               <View style={styles.dateTimeRow}>
                 <View style={styles.dateTimeDisplay}>
                   <Text style={dateTime ? styles.dateTimeText : styles.dateTimePlaceholder}>
@@ -371,14 +417,14 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
                   </Text>
                 </View>
                 <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
-                  <Ionicons name="calendar-outline" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>📅</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.dateTimeButton, !dateTime && styles.dateTimeButtonDisabled]} 
                   onPress={() => setShowTimePicker(true)}
                   disabled={!dateTime}
                 >
-                  <Ionicons name="time-outline" size={20} color="#fff" />
+                  <Text style={styles.buttonText}>🕒</Text>
                 </TouchableOpacity>
                 {dateTime && (
                   <TouchableOpacity 
@@ -388,7 +434,7 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
                       setDateTimeObj(new Date());
                     }}
                   >
-                    <Ionicons name="close-circle" size={20} color="#ff3b30" />
+                    <Text style={styles.buttonText}>✕</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -412,48 +458,24 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
               )}
             </View>
 
-            {/* 优先级（仅任务） */}
-            {itemType === 'task' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>优先级</Text>
-                <View style={styles.chipRow}>
-                  {['Low', 'Medium', 'High'].map((p) => (
-                    <TouchableOpacity
-                      key={p}
-                      style={[styles.chip, priority === p && styles.chipSelected]}
-                      onPress={() => setPriority(p)}
-                    >
-                      <Text style={[styles.chipText, priority === p && styles.chipTextSelected]}>
-                        {p === 'Low' ? '低' : p === 'Medium' ? '中' : '高'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>优先级</Text>
+              <View style={styles.chipRow}>
+                {(['low', 'medium', 'high', 'critical'] as const).map((p) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[styles.chip, priority === p && styles.chipSelected]}
+                    onPress={() => setPriority(p)}
+                  >
+                    <Text style={[styles.chipText, priority === p && styles.chipTextSelected]}>
+                      {p === 'low' ? '次要' : p === 'medium' ? '普通' : p === 'high' ? '重要' : '紧急'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            )}
+            </View>
 
-            {/* 严重程度（仅事件） */}
-            {itemType === 'event' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>严重程度</Text>
-                <View style={styles.chipRow}>
-                  {(['low', 'medium', 'high', 'critical'] as const).map((sev) => (
-                    <TouchableOpacity
-                      key={sev}
-                      style={[styles.chip, severity === sev && styles.chipSelected]}
-                      onPress={() => setSeverity(sev)}
-                    >
-                      <Text style={[styles.chipText, severity === sev && styles.chipTextSelected]}>
-                        {sev === 'low' ? '低' : sev === 'medium' ? '中' : sev === 'high' ? '高' : '严重'}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* 提醒（仅任务） */}
-            {itemType === 'task' && dateTime && (
+            {category === EventCategory.NORMAL && dateTime && (
               <View style={styles.inputContainer}>
                 <View style={styles.reminderRow}>
                   <Text style={styles.label}>提醒</Text>
@@ -477,37 +499,131 @@ const UnifiedCreateScreen = ({ navigation, route }: any) => {
               </View>
             )}
 
-            {/* 标签（仅事件） */}
-            {itemType === 'event' && (
-              <View style={styles.inputContainer}>
-                <Text style={styles.label}>标签</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="用逗号分隔，如：工作, 重要"
-                  value={tags}
-                  onChangeText={setTags}
-                />
-              </View>
-            )}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>标签</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="用逗号分隔，如：工作, 重要"
+                value={tags}
+                onChangeText={setTags}
+              />
+            </View>
 
-            {/* 提交按钮 */}
             <TouchableOpacity
               style={styles.submitButton}
               onPress={handleSubmit}
-              disabled={loading}
+              disabled={loading || isSubmitting}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitButtonText}>
-                  {itemType === 'task' ? '创建任务' : '创建事件'}
-                </Text>
+                <Text style={styles.submitButtonText}>创建</Text>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+
+      {/* 快速输入 Modal */}
+      <Modal
+        visible={showQuickInput}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          setShowQuickInput(false);
+          setQuickInput('');
+        }}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setShowQuickInput(false);
+            setQuickInput('');
+          }}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
+          >
+            <TouchableOpacity 
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles.modalContentWrapper}
+            >
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalTitleRow}>
+                    <Ionicons name="flash" size={24} color="#4a90e2" />
+                    <Text style={styles.modalTitle}>快速输入</Text>
+                  </View>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setShowQuickInput(false);
+                      setQuickInput('');
+                    }}
+                    style={styles.modalCloseButton}
+                  >
+                    <Ionicons name="close" size={28} color="#8e8e93" />
+                  </TouchableOpacity>
+                </View>
+                
+                <Text style={styles.modalHint}>
+                  💡 语音或文字输入原始内容，AI 将自动优化并填充表单
+                </Text>
+                
+                <View style={styles.modalInputWrapper}>
+                  <TextInput
+                    style={styles.modalInputArea}
+                    placeholder="例如：秒级数据需要周五前完成确认"
+                    value={quickInput}
+                    onChangeText={setQuickInput}
+                    multiline
+                    numberOfLines={6}
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    style={[styles.modalVoiceButton, isRecording && styles.modalVoiceButtonActive]}
+                    onPress={isRecording ? stopVoiceInput : startVoiceInput}
+                    disabled={loading || aiProcessing}
+                  >
+                    <Ionicons 
+                      name={isRecording ? "stop-circle" : "mic"} 
+                      size={32} 
+                      color={isRecording ? "#ff3b30" : "#4a90e2"} 
+                    />
+                  </TouchableOpacity>
+                </View>
+                
+                {isRecording && (
+                  <View style={styles.modalRecordingStatus}>
+                    <View style={styles.recordingDot} />
+                    <Text style={styles.modalRecordingText}>
+                      正在录音... ({recordingDuration}秒)
+                    </Text>
+                  </View>
+                )}
+                
+                <TouchableOpacity
+                  style={[styles.modalEnhanceButton, (aiProcessing || !quickInput.trim()) && styles.modalEnhanceButtonDisabled]}
+                  onPress={handleAIEnhance}
+                  disabled={aiProcessing || !quickInput.trim()}
+                >
+                  {aiProcessing ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={22} color="#fff" />
+                      <Text style={styles.modalEnhanceButtonText}>AI 智能润色并填充</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </Modal>
+    </SafeAreaView>
   );
 };
 
@@ -516,142 +632,94 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  floatingQuickButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#4a90e2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
   scrollContainer: {
     flexGrow: 1,
+    paddingTop: 8,
   },
   formContainer: {
-    padding: 20,
-  },
-  typeSwitcher: {
-    flexDirection: 'row',
-    marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#4a90e2',
-  },
-  typeButton: {
-    flex: 1,
-    padding: 14,
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  typeButtonLeft: {
-    borderRightWidth: 1,
-    borderRightColor: '#4a90e2',
-  },
-  typeButtonRight: {
-    borderLeftWidth: 1,
-    borderLeftColor: '#4a90e2',
-  },
-  typeButtonActive: {
-    backgroundColor: '#4a90e2',
-  },
-  typeButtonText: {
-    fontSize: 16,
-    color: '#4a90e2',
-    fontWeight: '600',
-  },
-  typeButtonTextActive: {
-    color: '#fff',
+    padding: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1c1c1e',
-    marginBottom: 24,
-  },
-  inputContainer: {
     marginBottom: 20,
   },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+  inputContainer: {
+    marginBottom: 16,
   },
   label: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1c1c1e',
+    marginBottom: 6,
   },
-  aiHint: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
+    color: '#1c1c1e',
+    marginRight: 8,
+  },
+  categoryDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minWidth: 100,
+  },
+  categoryDropdownText: {
     fontSize: 14,
-    color: '#4a90e2',
-    fontWeight: '500',
+    color: '#1c1c1e',
+    marginRight: 4,
   },
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e5e5ea',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 15,
     color: '#1c1c1e',
-  },
-  textAreaWrapper: {
-    position: 'relative',
   },
   textArea: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e5e5ea',
-    borderRadius: 12,
-    padding: 14,
-    paddingRight: 56,
-    fontSize: 16,
-    minHeight: 120,
-    color: '#1c1c1e',
-  },
-  voiceButton: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f2f2f7',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceButtonActive: {
-    backgroundColor: '#ffe5e5',
-  },
-  recordingHint: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#ff3b30',
-    fontWeight: '500',
-  },
-  categoryScroll: {
-    flexDirection: 'row',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: 8,
     padding: 10,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: '#e5e5ea',
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: '#fff',
-  },
-  categoryChipSelected: {
-    backgroundColor: '#4a90e2',
-    borderColor: '#4a90e2',
-  },
-  categoryIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  categoryText: {
-    fontSize: 14,
-    color: '#3c3c43',
-  },
-  categoryTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
+    fontSize: 15,
+    minHeight: 80,
+    color: '#1c1c1e',
   },
   dateTimeRow: {
     flexDirection: 'row',
@@ -662,61 +730,65 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#e5e5ea',
-    borderRadius: 12,
-    padding: 14,
-    marginRight: 8,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 6,
   },
   dateTimeText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1c1c1e',
   },
   dateTimePlaceholder: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#8e8e93',
   },
   dateTimeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 8,
     backgroundColor: '#4a90e2',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+    marginRight: 6,
   },
   dateTimeButtonDisabled: {
     backgroundColor: '#c8d6e5',
   },
   clearButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#ff3b30',
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    backgroundColor: '#ff3b30',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#e5e5ea',
-    borderRadius: 20,
+    borderRadius: 16,
     marginRight: 8,
     marginBottom: 8,
     backgroundColor: '#fff',
+    minWidth: 60,
   },
   chipSelected: {
     backgroundColor: '#4a90e2',
     borderColor: '#4a90e2',
   },
   chipText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#3c3c43',
+    textAlign: 'center',
   },
   chipTextSelected: {
     color: '#fff',
@@ -726,24 +798,143 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   submitButton: {
     backgroundColor: '#4a90e2',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 14,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#4a90e2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    marginTop: 8,
   },
   submitButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalKeyboardView: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContentWrapper: {
+    width: '100%',
+    maxWidth: 500,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1c1c1e',
+    marginLeft: 8,
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalHint: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  modalInputWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  modalInputArea: {
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    borderRadius: 12,
+    padding: 14,
+    paddingRight: 60,
+    fontSize: 16,
+    minHeight: 120,
+    maxHeight: 200,
+    color: '#1c1c1e',
+  },
+  modalVoiceButton: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  modalVoiceButtonActive: {
+    backgroundColor: '#ffe5e5',
+  },
+  modalRecordingStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ff3b30',
+    marginRight: 8,
+  },
+  modalRecordingText: {
+    fontSize: 14,
+    color: '#856404',
+  },
+  modalEnhanceButton: {
+    backgroundColor: '#4a90e2',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalEnhanceButtonDisabled: {
+    backgroundColor: '#c8d6e5',
+  },
+  modalEnhanceButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

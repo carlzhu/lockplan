@@ -8,7 +8,8 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MainTabsScreen from '../screens/MainTabsScreen';
-import ItemsScreen from '../screens/ItemsScreen';
+import ItemsScreenNew from '../screens/ItemsScreenNew';
+import ItemDetailScreen from '../screens/ItemDetailScreen';
 import CreateTaskScreen from '../screens/CreateTaskScreen';
 import EditTaskScreen from '../screens/EditTaskScreen';
 import TaskInputScreen from '../screens/TaskInputScreen';
@@ -20,6 +21,7 @@ import ApiTestScreen from '../screens/ApiTestScreen';
 import CreateItemScreen from '../screens/CreateItemScreen';
 import UnifiedCreateScreen from '../screens/UnifiedCreateScreen';
 import WeeklyAgendaScreen from '../screens/WeeklyAgendaScreen';
+import ItemStatusHistoryScreen from '../screens/ItemStatusHistoryScreen';
 
 // Context
 import { AuthContext } from '../context/AuthContext';
@@ -74,8 +76,18 @@ const AppNavigator = () => {
             />
             <Stack.Screen
               name="Items"
-              component={ItemsScreen}
-              options={{ title: 'DoNow' }}
+              component={ItemsScreenNew}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ItemDetail"
+              component={ItemDetailScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ItemStatusHistory"
+              component={ItemStatusHistoryScreen}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="Home"
