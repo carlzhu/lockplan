@@ -112,6 +112,8 @@ builder.Services.AddScoped<IAIService, QianwenAIService>();
 // 新增：统一的 Item 服务
 builder.Services.AddScoped<IItemService, ItemService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+// 新增：统计服务
+builder.Services.AddScoped<IStatsService, StatsService>();
 
 var app = builder.Build();
 

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
+import { fetchStats } from '../services/statsService';
 import { Ionicons } from '@expo/vector-icons';
 import ItemsScreenNew from './ItemsScreenNew';
 import SettingsScreen from './SettingsScreen';
@@ -14,19 +16,36 @@ type TabType = 'items' | 'stats' | 'settings';
 
 const MainTabsScreen = ({ navigation }: any) => {
   const [activeTab, setActiveTab] = useState<TabType>('items');
+  const [stats, setStats] = useState<any | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'items':
         return <ItemsScreenNew navigation={navigation} />;
       case 'stats':
-        return <StatsView />;
+        return <StatsView data={stats} loading={statsLoading} />;
       case 'settings':
         return <SettingsScreen navigation={navigation} />;
       default:
         return <ItemsScreenNew navigation={navigation} />;
     }
   };
+
+  useEffect(() => {
+    const load = async () => {
+      setStatsLoading(true);
+      try {
+        const s = await fetchStats();
+        setStats(s);
+      } catch (e) {
+        // ignore; keep defaults
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -98,63 +117,69 @@ const MainTabsScreen = ({ navigation }: any) => {
   );
 };
 
-// 统计视图组件
-const StatsView = () => {
+// 统计视图：绑定后端统计数据（A 方案完成后统一实现）
+const StatsView = ({ data, loading }: { data: any; loading: boolean }) => {
+  const tTotal = data?.TaskTotal ?? 0;
+  const tDone = data?.TaskCompleted ?? 0;
+  const tInProg = Math.max(0, tTotal - tDone);
+  const eTotal = data?.EventTotal ?? 0;
+  const eThisWeek = data?.EventThisWeek ?? 0;
+  const eThisMonth = data?.EventThisMonth ?? 0;
+  const iTotal = data?.ItemTotal ?? 0;
+  const iDone = data?.ItemCompleted ?? 0;
+  const rate = iTotal > 0 ? Math.round((iDone / iTotal) * 100) : 0;
+
   return (
     <View style={styles.statsContainer}>
       <Text style={styles.statsTitle}>📊 统计</Text>
-      
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{tTotal}</Text>
           <Text style={styles.statLabel}>总任务</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{tDone}</Text>
           <Text style={styles.statLabel}>已完成</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{tInProg}</Text>
           <Text style={styles.statLabel}>进行中</Text>
         </View>
       </View>
-
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{eTotal}</Text>
           <Text style={styles.statLabel}>总事件</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{eThisWeek}</Text>
           <Text style={styles.statLabel}>本周</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{eThisMonth}</Text>
           <Text style={styles.statLabel}>本月</Text>
         </View>
       </View>
-
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{iTotal}</Text>
           <Text style={styles.statLabel}>项目</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0%</Text>
+          <Text style={styles.statNumber}>{rate}%</Text>
           <Text style={styles.statLabel}>完成率</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
+          <Text style={styles.statNumber}>{0}</Text>
           <Text style={styles.statLabel}>子任务</Text>
         </View>
       </View>
-
       <Text style={styles.comingSoon}>📈 更多统计功能即将推出</Text>
     </View>
   );
