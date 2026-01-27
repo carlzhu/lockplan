@@ -10,7 +10,7 @@ public interface IItemService
     /// <summary>
     /// 获取用户的所有项目
     /// </summary>
-    Task<IEnumerable<ItemDto>> GetAllAsync(string? type = null, bool includeSubItems = false, bool topLevelOnly = false);
+    Task<IEnumerable<ItemDto>> GetAllAsync(string? type = null, string? status = null, bool includeSubItems = false, bool topLevelOnly = false);
     
     /// <summary>
     /// 根据 ID 获取项目

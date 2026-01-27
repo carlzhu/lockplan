@@ -23,17 +23,19 @@ public class ItemsController : ControllerBase
     /// 获取所有项目
     /// </summary>
     /// <param name="type">类型筛选 (task, event, project, note)</param>
+    /// <param name="status">状态筛选 (Todo, InProgress, Completed, OnHold, Cancelled)</param>
     /// <param name="includeSubItems">是否包含子项目</param>
     /// <param name="topLevelOnly">只获取顶层项目</param>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ItemDto>>> GetAll(
         [FromQuery] string? type = null,
+        [FromQuery] string? status = null,
         [FromQuery] bool includeSubItems = false,
         [FromQuery] bool topLevelOnly = false)
     {
         try
         {
-            var items = await _itemService.GetAllAsync(type, includeSubItems, topLevelOnly);
+            var items = await _itemService.GetAllAsync(type, status, includeSubItems, topLevelOnly);
             return Ok(items);
         }
         catch (Exception ex)

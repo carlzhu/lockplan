@@ -23,32 +23,34 @@ const { width } = Dimensions.get('window');
 
 const ItemsScreenNew = ({ navigation }: any) => {
   const [items, setItems] = useState<Item[]>([]);
-  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('compact');
   const [sortBy, setSortBy] = useState<SortBy>('time');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     fetchItems();
-  }, []);
+    fetchStatusCounts();
+  }, [statusFilter]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchItems();
+      fetchStatusCounts();
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, statusFilter]);
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const data = await getItems(undefined, true, true);
+      const status = statusFilter === 'all' ? undefined : statusFilter;
+      const data = await getItems(undefined, true, true, status);
       const sorted = sortItems(data, sortBy);
       setItems(sorted);
-      setFilteredItems(filterItemsByStatus(sorted, statusFilter));
     } catch (error) {
       console.error('Error fetching items:', error);
       Alert.alert('错误', '加载失败，请重试');
@@ -58,14 +60,33 @@ const ItemsScreenNew = ({ navigation }: any) => {
     }
   };
 
-  const filterItemsByStatus = (itemsToFilter: Item[], status: StatusFilter): Item[] => {
-    if (status === 'all') return itemsToFilter;
-    return itemsToFilter.filter(item => item.status === status);
+  const fetchStatusCounts = async () => {
+    try {
+      // 获取所有项目以统计各状态数量
+      const allItems = await getItems(undefined, true, true);
+      const counts: { [key: string]: number } = {
+        all: allItems.length,
+        Todo: 0,
+        InProgress: 0,
+        Completed: 0,
+        OnHold: 0,
+        Cancelled: 0,
+      };
+      
+      allItems.forEach(item => {
+        if (counts[item.status] !== undefined) {
+          counts[item.status]++;
+        }
+      });
+      
+      setStatusCounts(counts);
+    } catch (error) {
+      console.error('Error fetching status counts:', error);
+    }
   };
 
   const handleStatusFilter = (status: StatusFilter) => {
     setStatusFilter(status);
-    setFilteredItems(filterItemsByStatus(items, status));
   };
 
   const sortItems = (itemsToSort: Item[], sortType: SortBy): Item[] => {
@@ -97,13 +118,13 @@ const ItemsScreenNew = ({ navigation }: any) => {
     setSortBy(sortType);
     const sorted = sortItems(items, sortType);
     setItems(sorted);
-    setFilteredItems(filterItemsByStatus(sorted, statusFilter));
     setShowSortMenu(false);
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
     fetchItems();
+    fetchStatusCounts();
   };
 
   const handleDelete = (id: number) => {
@@ -116,6 +137,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
           try {
             await deleteItem(id);
             fetchItems();
+            fetchStatusCounts();
           } catch (error) {
             Alert.alert('错误', '删除失败');
           }
@@ -128,6 +150,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
     try {
       await completeItem(item.id);
       fetchItems();
+      fetchStatusCounts();
     } catch (error) {
       Alert.alert('错误', '操作失败');
     }
@@ -517,7 +540,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
           onPress={() => handleStatusFilter('all')}
         >
           <Text style={[styles.statusChipText, statusFilter === 'all' && styles.statusChipTextActive]}>
-            全部 ({items.length})
+            全部 ({statusCounts.all || 0})
           </Text>
         </TouchableOpacity>
         
@@ -527,7 +550,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         >
           <View style={[styles.statusDot, { backgroundColor: getStatusColor('Todo') }]} />
           <Text style={[styles.statusChipText, statusFilter === 'Todo' && styles.statusChipTextActive]}>
-            {getStatusLabel('Todo')} ({items.filter(i => i.status === 'Todo').length})
+            {getStatusLabel('Todo')} ({statusCounts.Todo || 0})
           </Text>
         </TouchableOpacity>
         
@@ -537,7 +560,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         >
           <View style={[styles.statusDot, { backgroundColor: getStatusColor('InProgress') }]} />
           <Text style={[styles.statusChipText, statusFilter === 'InProgress' && styles.statusChipTextActive]}>
-            {getStatusLabel('InProgress')} ({items.filter(i => i.status === 'InProgress').length})
+            {getStatusLabel('InProgress')} ({statusCounts.InProgress || 0})
           </Text>
         </TouchableOpacity>
         
@@ -547,7 +570,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         >
           <View style={[styles.statusDot, { backgroundColor: getStatusColor('Completed') }]} />
           <Text style={[styles.statusChipText, statusFilter === 'Completed' && styles.statusChipTextActive]}>
-            {getStatusLabel('Completed')} ({items.filter(i => i.status === 'Completed').length})
+            {getStatusLabel('Completed')} ({statusCounts.Completed || 0})
           </Text>
         </TouchableOpacity>
         
@@ -557,7 +580,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         >
           <View style={[styles.statusDot, { backgroundColor: getStatusColor('OnHold') }]} />
           <Text style={[styles.statusChipText, statusFilter === 'OnHold' && styles.statusChipTextActive]}>
-            {getStatusLabel('OnHold')} ({items.filter(i => i.status === 'OnHold').length})
+            {getStatusLabel('OnHold')} ({statusCounts.OnHold || 0})
           </Text>
         </TouchableOpacity>
         
@@ -567,7 +590,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         >
           <View style={[styles.statusDot, { backgroundColor: getStatusColor('Cancelled') }]} />
           <Text style={[styles.statusChipText, statusFilter === 'Cancelled' && styles.statusChipTextActive]}>
-            {getStatusLabel('Cancelled')} ({items.filter(i => i.status === 'Cancelled').length})
+            {getStatusLabel('Cancelled')} ({statusCounts.Cancelled || 0})
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -579,7 +602,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={items}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}

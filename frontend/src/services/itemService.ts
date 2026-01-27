@@ -75,13 +75,15 @@ const ITEMS_STORAGE_KEY = '@donow_items';
 export const getItems = async (
   type?: ItemType,
   includeSubItems: boolean = false,
-  topLevelOnly: boolean = false
+  topLevelOnly: boolean = false,
+  status?: ItemStatus
 ): Promise<Item[]> => {
   try {
     const params: any = {};
     if (type) params.type = type;
     if (includeSubItems) params.includeSubItems = true;
     if (topLevelOnly) params.topLevelOnly = true;
+    if (status) params.status = status;
 
     const response = await axios.get('/items', { params });
     
@@ -97,10 +99,14 @@ export const getItems = async (
     if (cached) {
       const items = JSON.parse(cached);
       // 应用筛选
+      let filtered = items;
       if (type) {
-        return items.filter((item: Item) => item.type === type);
+        filtered = filtered.filter((item: Item) => item.type === type);
       }
-      return items;
+      if (status) {
+        filtered = filtered.filter((item: Item) => item.status === status);
+      }
+      return filtered;
     }
     
     throw error;

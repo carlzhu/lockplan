@@ -18,7 +18,7 @@ public class ItemService : IItemService
         _currentUserService = currentUserService;
     }
 
-    public async System.Threading.Tasks.Task<IEnumerable<ItemDto>> GetAllAsync(string? type = null, bool includeSubItems = false, bool topLevelOnly = false)
+    public async System.Threading.Tasks.Task<IEnumerable<ItemDto>> GetAllAsync(string? type = null, string? status = null, bool includeSubItems = false, bool topLevelOnly = false)
     {
         var userId = _currentUserService.GetUserId();
         var query = _context.Items
@@ -30,6 +30,15 @@ public class ItemService : IItemService
             if (Enum.TryParse<ItemType>(type, true, out var itemType))
             {
                 query = query.Where(i => i.Type == itemType);
+            }
+        }
+
+        // 按状态筛选
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<ItemStatus>(status, true, out var itemStatus))
+            {
+                query = query.Where(i => i.Status == itemStatus);
             }
         }
 
