@@ -8,11 +8,18 @@ export interface AIEnhanceRequest {
 
 export interface AIEnhanceResponse {
   title?: string;
+  description?: string;
   enhancedDescription?: string;
+  type?: string;
+  priority?: string;
   suggestedDateTime?: string;
   suggestedPriority?: 'Low' | 'Medium' | 'High';
   suggestedCategory?: string;
+  category?: string;
   suggestedTags?: string[];
+  tags?: string[];
+  dueDate?: string;
+  eventTime?: string;
 }
 
 /**

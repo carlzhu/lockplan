@@ -142,33 +142,43 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
         generateTitle: true,
       });
 
+      console.log('AI Enhancement Result:', JSON.stringify(result, null, 2));
+
       // 智能填充所有字段
       if (result.title) {
         setTitle(result.title);
       }
       
-      if (result.enhancedDescription) {
-        setDescription(result.enhancedDescription);
+      if (result.enhancedDescription || result.description) {
+        setDescription(result.enhancedDescription || result.description || '');
       }
       
-      if (result.suggestedPriority) {
+      if (result.suggestedPriority || result.priority) {
+        const priorityValue = result.priority || result.suggestedPriority;
         const priorityMap: Record<string, 'low' | 'medium' | 'high' | 'critical'> = {
           'Low': 'low',
+          'low': 'low',
           'Medium': 'medium',
+          'medium': 'medium',
           'High': 'high',
+          'high': 'high',
           'Critical': 'critical',
+          'critical': 'critical',
         };
-        setPriority(priorityMap[result.suggestedPriority] || 'medium');
+        setPriority(priorityMap[priorityValue] || 'medium');
       }
       
       if (result.suggestedTags && result.suggestedTags.length > 0) {
         setTags(result.suggestedTags.join(', '));
+      } else if (result.tags && result.tags.length > 0) {
+        setTags(result.tags.join(', '));
       }
       
-      // 处理建议的时间
-      if (result.suggestedDateTime) {
+      // 处理建议的时间 - 支持多种字段名
+      const timeValue = result.suggestedDateTime || result.dueDate || result.eventTime;
+      if (timeValue) {
         try {
-          const suggestedDate = new Date(result.suggestedDateTime);
+          const suggestedDate = new Date(timeValue);
           if (!isNaN(suggestedDate.getTime())) {
             setDateTimeObj(suggestedDate);
             const year = suggestedDate.getFullYear();
@@ -184,8 +194,9 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
         }
       }
       
-      // 处理建议的类别
-      if (result.suggestedCategory) {
+      // 处理建议的类别 - 支持多种字段名
+      const categoryValue = result.suggestedCategory || result.category || result.type;
+      if (categoryValue) {
         const categoryMap: Record<string, EventCategory> = {
           'task': EventCategory.NORMAL,
           'normal': EventCategory.NORMAL,
@@ -195,8 +206,11 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
           'exception': EventCategory.EXCEPTION,
           'feedback': EventCategory.FEEDBACK,
           'idea': EventCategory.IDEA,
+          'event': EventCategory.NORMAL,
+          'project': EventCategory.MILESTONE,
+          'note': EventCategory.IDEA,
         };
-        const suggestedCat = categoryMap[result.suggestedCategory.toLowerCase()];
+        const suggestedCat = categoryMap[categoryValue.toLowerCase()];
         if (suggestedCat) {
           setCategory(suggestedCat);
         }
