@@ -22,6 +22,7 @@ import { EventCategory, getEventCategoryName, getEventCategoryIcon } from '../se
 import { scheduleTaskNotification } from '../services/notificationService';
 import { enhanceWithAI } from '../services/aiService';
 import { useSingleExecution } from '../hooks/useDebounce';
+import { addSmartPunctuation } from '../utils/textUtils';
 
 const UnifiedCreateScreen = ({ navigation }: any) => {
   const [title, setTitle] = useState('');
@@ -98,27 +99,6 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
       }
     };
   }, []);
-
-  // 智能添加标点符号
-  const addSmartPunctuation = (text: string): string => {
-    if (!text) return text;
-    
-    let result = text;
-    
-    // 在常见的停顿词后添加逗号
-    const pauseWords = ['然后', '接着', '另外', '还有', '以及', '并且', '而且'];
-    pauseWords.forEach(word => {
-      const regex = new RegExp(`(${word})(?![，。！？、])`, 'g');
-      result = result.replace(regex, `${word}，`);
-    });
-    
-    // 在句子结尾添加句号（如果没有标点）
-    if (result && !result.match(/[，。！？、]$/)) {
-      result += '。';
-    }
-    
-    return result;
-  };
 
   const startVoiceInput = async () => {
     try {

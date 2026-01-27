@@ -18,6 +18,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Ionicons } from '@expo/vector-icons';
 import Voice, { SpeechResultsEvent, SpeechErrorEvent } from '@react-native-voice/voice';
+import { addSmartPunctuation } from '../utils/textUtils';
 
 // Enable real voice recognition
 const useVoiceRecognition = true;
@@ -54,7 +55,9 @@ const TaskInputScreen = ({ navigation }: any) => {
       Voice.onSpeechResults = (e: SpeechResultsEvent) => {
         console.log('Speech results:', e);
         if (e.value && e.value.length > 0) {
-          const recognizedText = e.value[0];
+          let recognizedText = e.value[0];
+          // 添加智能标点符号
+          recognizedText = addSmartPunctuation(recognizedText);
           setText(recognizedText);
           setPartialResults(e.value);
           setRecordingStatus('语音转换完成');
