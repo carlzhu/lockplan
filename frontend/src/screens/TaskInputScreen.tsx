@@ -72,6 +72,7 @@ const TaskInputScreen = ({ navigation }: any) => {
       Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
         console.log('Partial results:', e);
         if (e.value && e.value.length > 0) {
+          // 实时结果不添加标点，避免频繁变化
           setText(e.value[0]);
           setPartialResults(e.value);
         }

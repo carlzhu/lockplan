@@ -75,7 +75,7 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
     };
     
     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
-      // 显示实时识别结果
+      // 显示实时识别结果（不添加标点，避免频繁变化）
       if (e.value && e.value.length > 0) {
         setQuickInput(e.value[0]);
       }
