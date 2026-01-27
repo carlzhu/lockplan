@@ -10,21 +10,25 @@ import {
   Alert,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getItems, deleteItem, completeItem, Item } from '../services/itemService';
+import { getItems, deleteItem, completeItem, Item, ItemStatus, getStatusLabel, getStatusColor } from '../services/itemService';
 
 type ViewMode = 'list' | 'card' | 'compact';
 type SortBy = 'time' | 'priority' | 'type' | 'title';
+type StatusFilter = 'all' | ItemStatus;
 
 const { width } = Dimensions.get('window');
 
 const ItemsScreenNew = ({ navigation }: any) => {
   const [items, setItems] = useState<Item[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('compact');
   const [sortBy, setSortBy] = useState<SortBy>('time');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showSortMenu, setShowSortMenu] = useState(false);
 
   useEffect(() => {
@@ -42,7 +46,9 @@ const ItemsScreenNew = ({ navigation }: any) => {
     try {
       setLoading(true);
       const data = await getItems(undefined, true, true);
-      setItems(sortItems(data, sortBy));
+      const sorted = sortItems(data, sortBy);
+      setItems(sorted);
+      setFilteredItems(filterItemsByStatus(sorted, statusFilter));
     } catch (error) {
       console.error('Error fetching items:', error);
       Alert.alert('错误', '加载失败，请重试');
@@ -50,6 +56,16 @@ const ItemsScreenNew = ({ navigation }: any) => {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const filterItemsByStatus = (itemsToFilter: Item[], status: StatusFilter): Item[] => {
+    if (status === 'all') return itemsToFilter;
+    return itemsToFilter.filter(item => item.status === status);
+  };
+
+  const handleStatusFilter = (status: StatusFilter) => {
+    setStatusFilter(status);
+    setFilteredItems(filterItemsByStatus(items, status));
   };
 
   const sortItems = (itemsToSort: Item[], sortType: SortBy): Item[] => {
@@ -79,7 +95,9 @@ const ItemsScreenNew = ({ navigation }: any) => {
 
   const handleSort = (sortType: SortBy) => {
     setSortBy(sortType);
-    setItems(sortItems(items, sortType));
+    const sorted = sortItems(items, sortType);
+    setItems(sorted);
+    setFilteredItems(filterItemsByStatus(sorted, statusFilter));
     setShowSortMenu(false);
   };
 
@@ -487,6 +505,73 @@ const ItemsScreenNew = ({ navigation }: any) => {
         </View>
       )}
 
+      {/* 状态筛选条 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.statusFilterContainer}
+        contentContainerStyle={styles.statusFilterContent}
+      >
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'all' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('all')}
+        >
+          <Text style={[styles.statusChipText, statusFilter === 'all' && styles.statusChipTextActive]}>
+            全部 ({items.length})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'Todo' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('Todo')}
+        >
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor('Todo') }]} />
+          <Text style={[styles.statusChipText, statusFilter === 'Todo' && styles.statusChipTextActive]}>
+            {getStatusLabel('Todo')} ({items.filter(i => i.status === 'Todo').length})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'InProgress' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('InProgress')}
+        >
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor('InProgress') }]} />
+          <Text style={[styles.statusChipText, statusFilter === 'InProgress' && styles.statusChipTextActive]}>
+            {getStatusLabel('InProgress')} ({items.filter(i => i.status === 'InProgress').length})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'Completed' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('Completed')}
+        >
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor('Completed') }]} />
+          <Text style={[styles.statusChipText, statusFilter === 'Completed' && styles.statusChipTextActive]}>
+            {getStatusLabel('Completed')} ({items.filter(i => i.status === 'Completed').length})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'OnHold' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('OnHold')}
+        >
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor('OnHold') }]} />
+          <Text style={[styles.statusChipText, statusFilter === 'OnHold' && styles.statusChipTextActive]}>
+            {getStatusLabel('OnHold')} ({items.filter(i => i.status === 'OnHold').length})
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.statusChip, statusFilter === 'Cancelled' && styles.statusChipActive]}
+          onPress={() => handleStatusFilter('Cancelled')}
+        >
+          <View style={[styles.statusDot, { backgroundColor: getStatusColor('Cancelled') }]} />
+          <Text style={[styles.statusChipText, statusFilter === 'Cancelled' && styles.statusChipTextActive]}>
+            {getStatusLabel('Cancelled')} ({items.filter(i => i.status === 'Cancelled').length})
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+
       {/* 列表 */}
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -494,7 +579,7 @@ const ItemsScreenNew = ({ navigation }: any) => {
         </View>
       ) : (
         <FlatList
-          data={items}
+          data={filteredItems}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
@@ -502,7 +587,9 @@ const ItemsScreenNew = ({ navigation }: any) => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Ionicons name="file-tray-outline" size={64} color="#bdbdbd" />
-              <Text style={styles.emptyText}>暂无项目</Text>
+              <Text style={styles.emptyText}>
+                {statusFilter === 'all' ? '暂无项目' : `暂无${getStatusLabel(statusFilter as ItemStatus)}的项目`}
+              </Text>
               <Text style={styles.emptyHint}>点击右下角 + 创建新项目</Text>
             </View>
           }
@@ -838,5 +925,50 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
+
+// 状态筛选样式
+const statusFilterStyles = StyleSheet.create({
+  statusFilterContainer: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  statusFilterContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  statusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    marginRight: 8,
+  },
+  statusChipActive: {
+    backgroundColor: '#e3f2fd',
+    borderWidth: 1,
+    borderColor: '#4a90e2',
+  },
+  statusChipText: {
+    fontSize: 13,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  statusChipTextActive: {
+    color: '#4a90e2',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+});
+
+// 合并样式
+Object.assign(styles, statusFilterStyles);
 
 export default ItemsScreenNew;
