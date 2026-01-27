@@ -29,41 +29,34 @@ const ItemsScreenNew = ({ navigation }: any) => {
   const [sortBy, setSortBy] = useState<SortBy>('time');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>({});
+  const [statusCounts, setStatusCounts] = useState<{ [key: string]: number }>({
+    all: 0,
+    Todo: 0,
+    InProgress: 0,
+    Completed: 0,
+    OnHold: 0,
+    Cancelled: 0,
+  });
 
   useEffect(() => {
     fetchItems();
-    fetchStatusCounts();
   }, [statusFilter]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       fetchItems();
-      fetchStatusCounts();
     });
     return unsubscribe;
-  }, [navigation, statusFilter]);
+  }, [navigation]);
 
   const fetchItems = async () => {
     try {
       setLoading(true);
-      const status = statusFilter === 'all' ? undefined : statusFilter;
-      const data = await getItems(undefined, true, true, status);
-      const sorted = sortItems(data, sortBy);
-      setItems(sorted);
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      Alert.alert('错误', '加载失败，请重试');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const fetchStatusCounts = async () => {
-    try {
-      // 获取所有项目以统计各状态数量
+      
+      // 先获取所有项目用于统计
       const allItems = await getItems(undefined, true, true);
+      
+      // 计算统计数据
       const counts: { [key: string]: number } = {
         all: allItems.length,
         Todo: 0,
@@ -80,8 +73,21 @@ const ItemsScreenNew = ({ navigation }: any) => {
       });
       
       setStatusCounts(counts);
+      
+      // 根据当前筛选条件过滤数据
+      let displayItems = allItems;
+      if (statusFilter !== 'all') {
+        displayItems = allItems.filter(item => item.status === statusFilter);
+      }
+      
+      const sorted = sortItems(displayItems, sortBy);
+      setItems(sorted);
     } catch (error) {
-      console.error('Error fetching status counts:', error);
+      console.error('Error fetching items:', error);
+      Alert.alert('错误', '加载失败，请重试');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -124,7 +130,6 @@ const ItemsScreenNew = ({ navigation }: any) => {
   const handleRefresh = () => {
     setRefreshing(true);
     fetchItems();
-    fetchStatusCounts();
   };
 
   const handleDelete = (id: number) => {
@@ -137,7 +142,6 @@ const ItemsScreenNew = ({ navigation }: any) => {
           try {
             await deleteItem(id);
             fetchItems();
-            fetchStatusCounts();
           } catch (error) {
             Alert.alert('错误', '删除失败');
           }
@@ -150,7 +154,6 @@ const ItemsScreenNew = ({ navigation }: any) => {
     try {
       await completeItem(item.id);
       fetchItems();
-      fetchStatusCounts();
     } catch (error) {
       Alert.alert('错误', '操作失败');
     }
@@ -955,20 +958,21 @@ const statusFilterStyles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    maxHeight: 44,
   },
   statusFilterContent: {
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    paddingVertical: 6,
+    gap: 6,
   },
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
     backgroundColor: '#f5f5f5',
-    marginRight: 8,
+    marginRight: 6,
   },
   statusChipActive: {
     backgroundColor: '#e3f2fd',
@@ -976,7 +980,7 @@ const statusFilterStyles = StyleSheet.create({
     borderColor: '#4a90e2',
   },
   statusChipText: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#757575',
     fontWeight: '500',
   },
@@ -984,10 +988,10 @@ const statusFilterStyles = StyleSheet.create({
     color: '#4a90e2',
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
   },
 });
 
