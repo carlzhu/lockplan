@@ -1,6 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL, API_PREFIX } from './apiConfig';
+import { API_URL, API_PREFIX } from '../config/apiConfig';
 export interface FrontendStats {
   TaskTotal: number;
   TaskCompleted: number;

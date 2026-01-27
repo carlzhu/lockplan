@@ -215,8 +215,9 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
           'high': 'high',
           'Critical': 'critical',
           'critical': 'critical',
-        };
-        setPriority(priorityMap[priorityValue] || 'medium');
+        } as const;
+        type PriorityKey = keyof typeof priorityMap;
+        setPriority(priorityMap[priorityValue as PriorityKey] || 'medium');
       }
       
       if (result.suggestedTags && result.suggestedTags.length > 0) {

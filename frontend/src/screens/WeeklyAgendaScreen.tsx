@@ -93,7 +93,7 @@ const WeeklyAgendaScreen = () => {
     try {
       setAiLoading(true);
       // 使用 AI 生成周会提纲（标题、描述）
-      const response = await enhanceWithAI({ description, type: 'task', GenerateTitle: true });
+      const response = await enhanceWithAI({ description, type: 'task', generateTitle: true });
       if (response) {
         if (response.title) setAgendaTitle(response.title);
         if (response.enhancedDescription) setAgendaContent(response.enhancedDescription);

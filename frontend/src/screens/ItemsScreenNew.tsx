@@ -950,10 +950,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 6,
   },
-});
-
-// 状态筛选样式
-const statusFilterStyles = StyleSheet.create({
+  // 状态筛选样式
   statusFilterContainer: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -994,8 +991,5 @@ const statusFilterStyles = StyleSheet.create({
     marginRight: 4,
   },
 });
-
-// 合并样式
-Object.assign(styles, statusFilterStyles);
 
 export default ItemsScreenNew;
