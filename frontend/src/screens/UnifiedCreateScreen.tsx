@@ -43,6 +43,8 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSpeechTimeRef = useRef<number>(0);
+  const currentSegmentRef = useRef<string>('');
 
   // AI processing state
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -56,28 +58,77 @@ const UnifiedCreateScreen = ({ navigation }: any) => {
     Voice.onSpeechStart = () => {
       console.log('Speech started');
       setIsRecording(true);
+      lastSpeechTimeRef.current = Date.now();
     };
     
     Voice.onSpeechEnd = () => {
       console.log('Speech ended');
       setIsRecording(false);
+      // 语音结束时，如果有当前段落，添加标点并追加
+      if (currentSegmentRef.current) {
+        const segment = addSmartPunctuation(currentSegmentRef.current);
+        setQuickInput(prev => {
+          if (!prev) return segment;
+          const lastChar = prev.trim().slice(-1);
+          const needsSeparator = !['，', '。', '！', '？', '、'].includes(lastChar);
+          return prev + (needsSeparator ? ' ' : '') + segment;
+        });
+        currentSegmentRef.current = '';
+      }
     };
     
     Voice.onSpeechResults = (e: SpeechResultsEvent) => {
       console.log('Speech results:', e);
       if (e.value && e.value.length > 0) {
-        // 只使用最终结果，不追加
-        let recognizedText = e.value[0];
-        // 添加智能标点符号
-        recognizedText = addSmartPunctuation(recognizedText);
-        setQuickInput(recognizedText);
+        const recognizedText = e.value[0];
+        currentSegmentRef.current = recognizedText;
+        
+        // 添加智能标点符号并显示
+        const textWithPunctuation = addSmartPunctuation(recognizedText);
+        setQuickInput(prev => {
+          if (!prev) return textWithPunctuation;
+          // 如果前面有内容，智能连接
+          const lastChar = prev.trim().slice(-1);
+          const needsSeparator = !['，', '。', '！', '？', '、'].includes(lastChar);
+          return prev + (needsSeparator ? ' ' : '') + textWithPunctuation;
+        });
       }
     };
     
     Voice.onSpeechPartialResults = (e: SpeechResultsEvent) => {
-      // 显示实时识别结果（不添加标点，避免频繁变化）
+      // 实时结果：检测停顿
       if (e.value && e.value.length > 0) {
-        setQuickInput(e.value[0]);
+        const now = Date.now();
+        const timeSinceLastSpeech = now - lastSpeechTimeRef.current;
+        lastSpeechTimeRef.current = now;
+        
+        const partialText = e.value[0];
+        currentSegmentRef.current = partialText;
+        
+        // 如果停顿超过1.5秒，认为是一段结束
+        if (timeSinceLastSpeech > 1500 && partialText) {
+          console.log('Detected pause, adding punctuation');
+          const segment = addSmartPunctuation(partialText);
+          setQuickInput(prev => {
+            if (!prev) return segment;
+            const lastChar = prev.trim().slice(-1);
+            const needsSeparator = !['，', '。', '！', '？', '、'].includes(lastChar);
+            return prev + (needsSeparator ? ' ' : '') + segment;
+          });
+          currentSegmentRef.current = '';
+        } else {
+          // 正常显示实时结果
+          setQuickInput(prev => {
+            // 保留之前完成的段落，只更新当前段落
+            const segments = prev.split(/[。！？]/);
+            if (segments.length > 1) {
+              // 有完成的段落，保留它们
+              const completed = segments.slice(0, -1).join('。') + '。';
+              return completed + partialText;
+            }
+            return partialText;
+          });
+        }
       }
     };
     
