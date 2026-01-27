@@ -3,6 +3,14 @@ USER root
 WORKDIR /app
 EXPOSE 8080
 
+# 设置环境变量
+ENV TZ=Asia/Shanghai \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+    
+# 设置时区
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
