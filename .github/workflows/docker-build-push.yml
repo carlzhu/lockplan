@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Docker Build and Push
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
       - main
       - master
       - develop
+    tags:
+      - 'v*'
     paths:
       - 'backend/**'
       - '.github/workflows/docker-build-push.yml'
@@ -17,25 +19,21 @@ on:
       - 'backend/**'
   workflow_dispatch:
 
+env:
+  DOCKER_IMAGE: donow-api
+  DOCKER_PLATFORMS: linux/amd64,linux/arm64
+
 jobs:
   build-and-push:
-    # 调用可重用的 workflow（如果你创建了中央仓库）
-    # uses: <your-username>/github-workflows/.github/workflows/reusable-docker-build.yml@main
-    # with:
-    #   docker-image-name: donow-api
-    #   dockerfile-path: ./backend/Dockerfile
-    #   context-path: ./backend
-    # secrets:
-    #   docker-username: ${{ secrets.DOCKER_USERNAME }}
-    #   docker-password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    # 当前的实现（如果不使用可重用 workflow）
     runs-on: ubuntu-latest
-    environment: docker-hub  # 使用环境配置
+    environment: docker-hub
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -44,21 +42,20 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata (tags, labels)
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ secrets.DOCKER_USERNAME }}/donow-api
+          images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -66,12 +63,13 @@ jobs:
         with:
           context: ./backend
           file: ./backend/Dockerfile
+          platforms: ${{ env.DOCKER_PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
 
       - name: Image digest
-        run: echo ${{ steps.meta.outputs.digest }}
+        if: github.event_name != 'pull_request'
+        run: echo "Image pushed with digest ${{ steps.meta.outputs.digest }}"
