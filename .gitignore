@@ -70,6 +70,8 @@ yarn-error.*
 
 # 环境变量
 .env*.local
+.env
+backend/.env
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local

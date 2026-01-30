@@ -20,7 +20,7 @@ COPY ["DoNow.Domain/DoNow.Domain.csproj", "DoNow.Domain/"]
 COPY ["DoNow.Infrastructure/DoNow.Infrastructure.csproj", "DoNow.Infrastructure/"]
 RUN dotnet restore "DoNow.Api/DoNow.Api.csproj"
 COPY . .
-COPY nuget.config .
+# COPY nuget.config .
 WORKDIR "/src/DoNow.Api"
 RUN dotnet build "./DoNow.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
