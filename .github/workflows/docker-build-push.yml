@@ -17,13 +17,21 @@ on:
       - 'backend/**'
   workflow_dispatch:
 
-env:
-  DOCKER_IMAGE_NAME: donow-api
-  DOCKER_REGISTRY: docker.io
-
 jobs:
   build-and-push:
+    # 调用可重用的 workflow（如果你创建了中央仓库）
+    # uses: <your-username>/github-workflows/.github/workflows/reusable-docker-build.yml@main
+    # with:
+    #   docker-image-name: donow-api
+    #   dockerfile-path: ./backend/Dockerfile
+    #   context-path: ./backend
+    # secrets:
+    #   docker-username: ${{ secrets.DOCKER_USERNAME }}
+    #   docker-password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    # 当前的实现（如果不使用可重用 workflow）
     runs-on: ubuntu-latest
+    environment: docker-hub  # 使用环境配置
     
     steps:
       - name: Checkout code
@@ -36,7 +44,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
+          registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
@@ -44,7 +52,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
+          images: docker.io/${{ secrets.DOCKER_USERNAME }}/donow-api
           tags: |
             type=ref,event=branch
             type=ref,event=pr

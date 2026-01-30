@@ -6,6 +6,8 @@ This workflow automatically builds and pushes the DoNow backend API Docker image
 
 ### Setup Instructions
 
+#### 方案 1: 项目级别 Secrets（简单但需要每个项目设置）
+
 1. **Create Docker Hub Account**
    - Sign up at https://hub.docker.com if you don't have an account
 
@@ -15,6 +17,51 @@ This workflow automatically builds and pushes the DoNow backend API Docker image
    
    - `DOCKER_USERNAME`: Your Docker Hub username
    - `DOCKER_PASSWORD`: Your Docker Hub password or access token (recommended)
+
+#### 方案 2: 使用 Environment（推荐，便于管理）
+
+1. **创建 Environment**
+   - 进入仓库 → Settings → Environments
+   - 点击 "New environment"
+   - 名称设为 `docker-hub`
+
+2. **在 Environment 中添加 Secrets**
+   - 在 `docker-hub` 环境中添加：
+     - `DOCKER_USERNAME`: Your Docker Hub username
+     - `DOCKER_PASSWORD`: Your Docker Hub password or access token
+
+3. **优势**
+   - 集中管理相关的 secrets
+   - 可以添加保护规则（需要审批等）
+   - 更清晰的组织结构
+
+#### 方案 3: 组织级别 Secrets（适合团队）
+
+如果你的仓库在 GitHub 组织下：
+
+1. **进入组织设置**
+   - 访问 `https://github.com/organizations/<your-org>/settings/secrets/actions`
+
+2. **添加组织级别的 secrets**
+   - 点击 "New organization secret"
+   - 添加 `DOCKER_USERNAME` 和 `DOCKER_PASSWORD`
+   - 选择可以访问的仓库（所有或指定）
+
+3. **优势**
+   - 只需设置一次
+   - 组织内所有仓库都可以使用
+   - 统一管理
+
+#### 方案 4: 可重用 Workflow（最佳实践，适合多项目）
+
+创建一个中央仓库存放可重用的 workflow：
+
+1. **创建中央仓库**（如 `github-workflows`）
+2. **在中央仓库添加可重用 workflow**（参考 `reusable-docker-build.yml`）
+3. **在项目中调用**（取消注释 workflow 文件中的 `uses` 部分）
+4. **只需在中央仓库设置一次 secrets**
+
+### Docker Hub Access Token（推荐）
    
    To create a Docker Hub access token:
    - Log in to Docker Hub
