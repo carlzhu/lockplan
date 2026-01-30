@@ -1,8 +1,18 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+USER root
 WORKDIR /app
 EXPOSE 8080
 
+# 设置环境变量
+ENV TZ=Asia/Shanghai \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8
+    
+# 设置时区
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
@@ -15,12 +25,14 @@ RUN dotnet restore "DoNow.Api/DoNow.Api.csproj"
 # Copy everything else and build
 COPY . .
 WORKDIR "/src/DoNow.Api"
-RUN dotnet build "DoNow.Api.csproj" -c Release -o /app/build
+RUN dotnet build "DoNow.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "DoNow.Api.csproj" -c Release -o /app/publish
+ARG BUILD_CONFIGURATION=Release
+RUN dotnet publish "DoNow.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "DoNow.Api.dll"]
+
